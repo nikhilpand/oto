@@ -18,6 +18,7 @@ import { OTOProgressBar } from './OTOProgressBar';
 import { getPauseScale } from '../math/nowPlayingMath';
 import { OTOLyrics } from '@/lyrics/components/OTOLyrics';
 import { mockParsedDuetLyrics } from '@/mock/mockLyrics';
+import { OTOQueue } from '@/queue/components/OTOQueue';
 
 export interface OTONowPlayingContentProps {
   onCollapse: () => void;
@@ -331,11 +332,13 @@ export function OTONowPlayingContent({
   const repeatMode = usePlaybackStore((s) => s.repeatMode);
   const setShuffle = usePlaybackStore((s) => s.setShuffle);
   const setRepeatMode = usePlaybackStore((s) => s.setRepeatMode);
+  const setTrack = usePlaybackStore((s) => s.setTrack);
   const engine = useAudioEngine();
   const { activePalette } = usePalette();
 
   const [isLiked, setIsLiked] = useState(false);
   const [showLyrics, setShowLyrics] = useState(false);
+  const [showQueue, setShowQueue] = useState(false);
 
   // Artwork pause-scale animation: 1.0 playing -> 0.92 paused
   const artworkScale = useSharedValue(getPauseScale(isPlaying));
@@ -414,10 +417,18 @@ export function OTONowPlayingContent({
         />
         <View style={styles.headerCenter}>
           <OTOText variant="meta" weight="semibold" colorRole="tertiary" numberOfLines={1}>
-            {showLyrics ? 'SYNCHRONIZED LYRICS' : 'PLAYING FROM'}
+            {showQueue
+              ? 'PLAYBACK QUEUE'
+              : showLyrics
+                ? 'SYNCHRONIZED LYRICS'
+                : 'PLAYING FROM'}
           </OTOText>
           <OTOText variant="caption" weight="medium" colorRole="primary" numberOfLines={1}>
-            {showLyrics ? currentTrack.title : (currentTrack.album ?? 'Now Playing')}
+            {showQueue
+              ? 'Upcoming Tracks'
+              : showLyrics
+                ? currentTrack.title
+                : (currentTrack.album ?? 'Now Playing')}
           </OTOText>
         </View>
         <OTOIconButton
@@ -431,8 +442,18 @@ export function OTONowPlayingContent({
         />
       </View>
 
-      {/* 2 & 3. Hero Artwork OR Fullscreen Lyrics */}
-      {showLyrics ? (
+      {/* 2 & 3. Hero Artwork OR Fullscreen Lyrics OR Queue */}
+      {showQueue ? (
+        <View style={styles.lyricsSection}>
+          <OTOQueue
+            onClose={() => setShowQueue(false)}
+            onTrackSelect={(selected) => {
+              setTrack(selected);
+              void engine.load(selected, true);
+            }}
+          />
+        </View>
+      ) : showLyrics ? (
         <View style={styles.lyricsSection}>
           <OTOLyrics
             lyrics={mockParsedDuetLyrics}
@@ -557,15 +578,30 @@ export function OTONowPlayingContent({
           accessibilityLabel={showLyrics ? 'Hide lyrics' : 'Show lyrics'}
           onPress={() => {
             void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            setShowLyrics((prev) => !prev);
+            setShowLyrics((prev) => {
+              if (!prev) setShowQueue(false);
+              return !prev;
+            });
           }}
           size={minTouchSize}
         />
         <OTOIconButton
-          icon={<QueueIcon />}
-          accessibilityLabel="Queue"
+          icon={
+            <QueueIcon
+              color={
+                showQueue
+                  ? activePalette.dominant || color.accent.signature
+                  : color.text.tertiary
+              }
+            />
+          }
+          accessibilityLabel={showQueue ? 'Hide queue' : 'Show queue'}
           onPress={() => {
             void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            setShowQueue((prev) => {
+              if (!prev) setShowLyrics(false);
+              return !prev;
+            });
           }}
           size={minTouchSize}
         />
