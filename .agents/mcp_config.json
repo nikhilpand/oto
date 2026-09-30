@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "context-mode": {
+      "command": "node",
+      "args": [
+        "C:\\Users\\nikhil\\AppData\\Roaming\\npm\\node_modules\\context-mode\\cli.bundle.mjs"
+      ]
+    }
+  }
+}
