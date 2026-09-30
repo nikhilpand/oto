@@ -16,8 +16,9 @@ import { OTOIconButtonStories } from './OTOIconButton.stories';
 import { OTOGlassSurfaceStories } from './OTOGlassSurface.stories';
 import { OTOArtworkStories } from './OTOArtwork.stories';
 import { ColorHarnessStories } from './ColorHarness.stories';
+import { AudioHarnessStories } from './AudioHarness.stories';
 
-type StoryTab = 'all' | 'text' | 'button' | 'iconButton' | 'glass' | 'artwork' | 'color';
+type StoryTab = 'all' | 'text' | 'button' | 'iconButton' | 'glass' | 'artwork' | 'color' | 'audio';
 
 export function StorybookViewer() {
   const [activeTab, setActiveTab] = useState<StoryTab>('all');
@@ -100,6 +101,7 @@ export function StorybookViewer() {
                   ['glass', 'Glass'],
                   ['artwork', 'Artwork'],
                   ['color', 'Color Harness'],
+                  ['audio', 'Audio Engine'],
                 ] as const
               ).map(([key, label]) => (
                 <Pressable
@@ -133,6 +135,7 @@ export function StorybookViewer() {
             {(activeTab === 'all' || activeTab === 'glass') && <OTOGlassSurfaceStories />}
             {(activeTab === 'all' || activeTab === 'artwork') && <OTOArtworkStories />}
             {(activeTab === 'all' || activeTab === 'color') && <ColorHarnessStories />}
+            {(activeTab === 'all' || activeTab === 'audio') && <AudioHarnessStories />}
           </ScrollView>
         </SafeAreaView>
       </ReducedMotionProvider>
