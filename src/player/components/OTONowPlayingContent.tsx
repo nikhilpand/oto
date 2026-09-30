@@ -16,6 +16,8 @@ import { usePlaybackStore } from '@/store/usePlaybackStore';
 import { useAudioEngine } from '@/audio/AudioContext';
 import { OTOProgressBar } from './OTOProgressBar';
 import { getPauseScale } from '../math/nowPlayingMath';
+import { OTOLyrics } from '@/lyrics/components/OTOLyrics';
+import { mockParsedDuetLyrics } from '@/mock/mockLyrics';
 
 export interface OTONowPlayingContentProps {
   onCollapse: () => void;
@@ -333,6 +335,7 @@ export function OTONowPlayingContent({
   const { activePalette } = usePalette();
 
   const [isLiked, setIsLiked] = useState(false);
+  const [showLyrics, setShowLyrics] = useState(false);
 
   // Artwork pause-scale animation: 1.0 playing -> 0.92 paused
   const artworkScale = useSharedValue(getPauseScale(isPlaying));
@@ -411,10 +414,10 @@ export function OTONowPlayingContent({
         />
         <View style={styles.headerCenter}>
           <OTOText variant="meta" weight="semibold" colorRole="tertiary" numberOfLines={1}>
-            PLAYING FROM
+            {showLyrics ? 'SYNCHRONIZED LYRICS' : 'PLAYING FROM'}
           </OTOText>
           <OTOText variant="caption" weight="medium" colorRole="primary" numberOfLines={1}>
-            {currentTrack.album ?? 'Now Playing'}
+            {showLyrics ? currentTrack.title : (currentTrack.album ?? 'Now Playing')}
           </OTOText>
         </View>
         <OTOIconButton
@@ -428,45 +431,59 @@ export function OTONowPlayingContent({
         />
       </View>
 
-      {/* 2. Artwork Square (~42%) */}
-      <View style={styles.artworkContainer}>
-        <Animated.View
-          style={[
-            styles.artworkWrapper,
-            { width: artworkSize, height: artworkSize },
-            artworkAnimatedStyle,
-          ]}
-        >
-          <OTOArtwork
-            uri={currentTrack.artworkUrl}
-            thumbhash={currentTrack.thumbhash}
-            size={artworkSize}
-            borderRadius={radius.lg}
-            alt={`${currentTrack.title} album artwork`}
+      {/* 2 & 3. Hero Artwork OR Fullscreen Lyrics */}
+      {showLyrics ? (
+        <View style={styles.lyricsSection}>
+          <OTOLyrics
+            lyrics={mockParsedDuetLyrics}
+            positionMs={positionMs}
+            onSeek={handleSeek}
+            mode="fullscreen"
           />
-        </Animated.View>
-      </View>
-
-      {/* 3. Title / Artist / Like Row (~12%) */}
-      <View style={styles.metaRow}>
-        <View style={styles.metaTextContainer}>
-          <OTOText variant="headline" weight="bold" numberOfLines={1}>
-            {currentTrack.title}
-          </OTOText>
-          <OTOText variant="body" colorRole="secondary" numberOfLines={1}>
-            {currentTrack.artist}
-          </OTOText>
         </View>
-        <Pressable
-          accessible
-          accessibilityRole="button"
-          accessibilityLabel={isLiked ? 'Unlike track' : 'Like track'}
-          onPress={handleToggleLike}
-          style={[styles.likeButton, { width: minTouchSize, height: minTouchSize }]}
-        >
-          <HeartIcon filled={isLiked} />
-        </Pressable>
-      </View>
+      ) : (
+        <>
+          {/* 2. Artwork Square (~42%) */}
+          <View style={styles.artworkContainer}>
+            <Animated.View
+              style={[
+                styles.artworkWrapper,
+                { width: artworkSize, height: artworkSize },
+                artworkAnimatedStyle,
+              ]}
+            >
+              <OTOArtwork
+                uri={currentTrack.artworkUrl}
+                thumbhash={currentTrack.thumbhash}
+                size={artworkSize}
+                borderRadius={radius.lg}
+                alt={`${currentTrack.title} album artwork`}
+              />
+            </Animated.View>
+          </View>
+
+          {/* 3. Title / Artist / Like Row (~12%) */}
+          <View style={styles.metaRow}>
+            <View style={styles.metaTextContainer}>
+              <OTOText variant="headline" weight="bold" numberOfLines={1}>
+                {currentTrack.title}
+              </OTOText>
+              <OTOText variant="body" colorRole="secondary" numberOfLines={1}>
+                {currentTrack.artist}
+              </OTOText>
+            </View>
+            <Pressable
+              accessible
+              accessibilityRole="button"
+              accessibilityLabel={isLiked ? 'Unlike track' : 'Like track'}
+              onPress={handleToggleLike}
+              style={[styles.likeButton, { width: minTouchSize, height: minTouchSize }]}
+            >
+              <HeartIcon filled={isLiked} />
+            </Pressable>
+          </View>
+        </>
+      )}
 
       {/* 4. Interactive Scrubber (~10%) */}
       <View style={styles.scrubberRow}>
@@ -528,10 +545,19 @@ export function OTONowPlayingContent({
       {/* 6. Secondary Action Bar (~8%) */}
       <View style={styles.secondaryRow}>
         <OTOIconButton
-          icon={<LyricsIcon />}
-          accessibilityLabel="Lyrics"
+          icon={
+            <LyricsIcon
+              color={
+                showLyrics
+                  ? activePalette.dominant || color.accent.signature
+                  : color.text.tertiary
+              }
+            />
+          }
+          accessibilityLabel={showLyrics ? 'Hide lyrics' : 'Show lyrics'}
           onPress={() => {
             void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            setShowLyrics((prev) => !prev);
           }}
           size={minTouchSize}
         />
@@ -568,6 +594,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: 'space-between',
+  },
+  lyricsSection: {
+    flex: 1,
+    minHeight: 280,
+    marginVertical: space[2],
   },
   headerRow: {
     height: 48,
