@@ -17,8 +17,10 @@ import { OTOGlassSurfaceStories } from './OTOGlassSurface.stories';
 import { OTOArtworkStories } from './OTOArtwork.stories';
 import { ColorHarnessStories } from './ColorHarness.stories';
 import { AudioHarnessStories } from './AudioHarness.stories';
+import { DeRiskStackStories } from './DeRiskStack.stories';
+import { PlayerShellStories } from './PlayerShell.stories';
 
-type StoryTab = 'all' | 'text' | 'button' | 'iconButton' | 'glass' | 'artwork' | 'color' | 'audio';
+type StoryTab = 'all' | 'text' | 'button' | 'iconButton' | 'glass' | 'artwork' | 'color' | 'audio' | 'derisk' | 'playerShell';
 
 export function StorybookViewer() {
   const [activeTab, setActiveTab] = useState<StoryTab>('all');
@@ -102,6 +104,8 @@ export function StorybookViewer() {
                   ['artwork', 'Artwork'],
                   ['color', 'Color Harness'],
                   ['audio', 'Audio Engine'],
+                  ['derisk', 'De-Risk Canvas'],
+                  ['playerShell', 'Player Shell'],
                 ] as const
               ).map(([key, label]) => (
                 <Pressable
@@ -136,6 +140,8 @@ export function StorybookViewer() {
             {(activeTab === 'all' || activeTab === 'artwork') && <OTOArtworkStories />}
             {(activeTab === 'all' || activeTab === 'color') && <ColorHarnessStories />}
             {(activeTab === 'all' || activeTab === 'audio') && <AudioHarnessStories />}
+            {(activeTab === 'all' || activeTab === 'derisk') && <DeRiskStackStories />}
+            {(activeTab === 'all' || activeTab === 'playerShell') && <PlayerShellStories />}
           </ScrollView>
         </SafeAreaView>
       </ReducedMotionProvider>

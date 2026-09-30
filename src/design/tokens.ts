@@ -145,3 +145,6 @@ export type TypographyVariant = keyof typeof type;
 export type TextColorRole = 'primary' | 'secondary' | 'tertiary' | 'disabled';
 export type RadiusSize = keyof typeof radius;
 export type SpacingScale = typeof space;
+export type SpringTokens = typeof spring;
+export type DurationTokens = typeof duration;
+
