@@ -2,8 +2,6 @@ import React from 'react';
 import {
   View,
   StyleSheet,
-  Pressable,
-  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
@@ -11,14 +9,16 @@ import Animated, {
   interpolate,
   type SharedValue,
 } from 'react-native-reanimated';
-import { color, space, radius, touchTarget } from '@/design/tokens';
-import { OTOText } from '@/design/components/OTOText';
+import { GestureDetector, type Gesture } from 'react-native-gesture-handler';
+import { color, space } from '@/design/tokens';
 import { usePlaybackStore } from '@/store/usePlaybackStore';
+import { OTODynamicBackground } from './OTODynamicBackground';
 
 export interface OTONowPlayingShellProps {
   playerProgress: SharedValue<number>;
   onCollapse: () => void;
   screenHeight: number;
+  panGesture?: ReturnType<typeof Gesture.Pan>;
   children?: React.ReactNode;
 }
 
@@ -26,12 +26,13 @@ export interface OTONowPlayingShellProps {
  * OTONowPlayingShell — Full-screen expandable container for the active player.
  *
  * Driven by the single shared value `playerProgress` (0 = collapsed, 1 = full).
- * Translates and fades smoothly from bottom of screen upward without hitching.
+ * Contains the atmospheric liquid background (4 quality tiers) and wraps
+ * the interactive Now Playing content hierarchy.
  */
 export function OTONowPlayingShell({
   playerProgress,
-  onCollapse,
   screenHeight,
+  panGesture,
   children,
 }: OTONowPlayingShellProps): React.JSX.Element | null {
   const insets = useSafeAreaInsets();
@@ -52,6 +53,7 @@ export function OTONowPlayingShell({
     return {
       transform: [{ translateY }],
       opacity,
+      pointerEvents: playerProgress.value < 0.05 ? 'none' : 'auto',
     };
   });
 
@@ -59,7 +61,7 @@ export function OTONowPlayingShell({
     return null;
   }
 
-  return (
+  const content = (
     <Animated.View
       style={[
         styles.container,
@@ -69,83 +71,38 @@ export function OTONowPlayingShell({
         },
         containerAnimatedStyle,
       ]}
-      pointerEvents={playerProgress.value < 0.05 ? 'none' : 'auto'}
       accessible={false}
     >
-      {/* Top Grabber & Collapse Header */}
-      <View style={styles.header}>
-        <Pressable
-          accessible
-          accessibilityRole="button"
-          accessibilityLabel="Collapse now playing"
-          accessibilityHint="Returns to the mini player"
-          onPress={onCollapse}
-          style={styles.grabberTouchTarget}
-        >
-          <View style={styles.grabberBar} />
-        </Pressable>
+      {/* 1. Atmospheric liquid background layer (4 Quality Tiers) */}
+      <OTODynamicBackground />
 
-        <View style={styles.headerTitleContainer}>
-          <OTOText variant="meta" weight="semibold" colorRole="tertiary" numberOfLines={1}>
-            PLAYING FROM
-          </OTOText>
-          <OTOText variant="caption" weight="medium" colorRole="primary" numberOfLines={1}>
-            {currentTrack.album ?? 'Now Playing'}
-          </OTOText>
-        </View>
-
-        {/* Balance spacer matching grabber width */}
-        <View style={styles.headerSpacer} />
-      </View>
-
-      {/* Main Content Area (Artwork & Controls) */}
+      {/* 2. Now Playing interactive content */}
       <View style={styles.content}>
         {children}
       </View>
     </Animated.View>
   );
-}
 
-const MIN_TOUCH_SIZE = Platform.select({
-  ios: touchTarget.ios,
-  default: touchTarget.android,
-});
+  if (panGesture) {
+    return <GestureDetector gesture={panGesture}>{content}</GestureDetector>;
+  }
+
+  return content;
+}
 
 const styles = StyleSheet.create({
   container: {
-    ...StyleSheet.absoluteFill,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     backgroundColor: color.bg.base,
     zIndex: 200,
     paddingHorizontal: space[5],
-  },
-  header: {
-    height: 48,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: space[4],
-  },
-  grabberTouchTarget: {
-    width: MIN_TOUCH_SIZE,
-    height: MIN_TOUCH_SIZE,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  grabberBar: {
-    width: 36,
-    height: 5,
-    borderRadius: radius.full,
-    backgroundColor: color.hairline,
-  },
-  headerTitleContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    flex: 1,
-  },
-  headerSpacer: {
-    width: MIN_TOUCH_SIZE,
   },
   content: {
     flex: 1,
   },
 });
+

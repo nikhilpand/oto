@@ -4,8 +4,8 @@ import {
   View,
   StyleSheet,
   Pressable,
-  SafeAreaView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { color, space, radius, QualityTier } from '@/design/tokens';
 import { OTOText } from '@/design/components/OTOText';
 import { QualityTierProvider } from '@/design/hooks/useQualityTier';
@@ -19,8 +19,9 @@ import { ColorHarnessStories } from './ColorHarness.stories';
 import { AudioHarnessStories } from './AudioHarness.stories';
 import { DeRiskStackStories } from './DeRiskStack.stories';
 import { PlayerShellStories } from './PlayerShell.stories';
+import { NowPlayingStories } from './NowPlaying.stories';
 
-type StoryTab = 'all' | 'text' | 'button' | 'iconButton' | 'glass' | 'artwork' | 'color' | 'audio' | 'derisk' | 'playerShell';
+type StoryTab = 'all' | 'text' | 'button' | 'iconButton' | 'glass' | 'artwork' | 'color' | 'audio' | 'derisk' | 'playerShell' | 'nowPlaying';
 
 export function StorybookViewer() {
   const [activeTab, setActiveTab] = useState<StoryTab>('all');
@@ -106,6 +107,7 @@ export function StorybookViewer() {
                   ['audio', 'Audio Engine'],
                   ['derisk', 'De-Risk Canvas'],
                   ['playerShell', 'Player Shell'],
+                  ['nowPlaying', 'Now Playing'],
                 ] as const
               ).map(([key, label]) => (
                 <Pressable
@@ -142,6 +144,7 @@ export function StorybookViewer() {
             {(activeTab === 'all' || activeTab === 'audio') && <AudioHarnessStories />}
             {(activeTab === 'all' || activeTab === 'derisk') && <DeRiskStackStories />}
             {(activeTab === 'all' || activeTab === 'playerShell') && <PlayerShellStories />}
+            {(activeTab === 'all' || activeTab === 'nowPlaying') && <NowPlayingStories />}
           </ScrollView>
         </SafeAreaView>
       </ReducedMotionProvider>

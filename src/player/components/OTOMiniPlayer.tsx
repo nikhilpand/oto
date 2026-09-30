@@ -12,6 +12,7 @@ import Animated, {
   runOnJS,
 } from 'react-native-reanimated';
 import { GestureDetector, Gesture } from 'react-native-gesture-handler';
+import * as Haptics from 'expo-haptics';
 import { color, space, radius, touchTarget } from '@/design/tokens';
 import { OTOGlassSurface } from '@/design/components/OTOGlassSurface';
 import { OTOText } from '@/design/components/OTOText';
@@ -58,10 +59,10 @@ function PauseIcon({ color: iconColor = color.text.primary, size = 14 }: { color
  * OTOMiniPlayer — Floating glass transport bar above Native Tabs.
  *
  * - Artwork: 44x44 rounded thumbnail.
- * - Title & artist with marquee/scrim.
- * - Play/Pause transport toggle.
+ * - Title & artist with typography tokens.
+ * - Play/Pause transport toggle with haptics.
  * - 120Hz Reanimated UI-thread progress line.
- * - Swipe left/right skips track; tap expands to full player.
+ * - Swipe left/right skips track; swipe up or tap expands to full player.
  */
 export function OTOMiniPlayer({
   playerProgress,
@@ -78,6 +79,7 @@ export function OTOMiniPlayer({
   );
 
   const handleTogglePlay = useCallback(() => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (isPlaying) {
       void engine.pause();
     } else {
@@ -86,20 +88,22 @@ export function OTOMiniPlayer({
   }, [engine, isPlaying]);
 
   const handleSkipNext = useCallback(() => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     void engine.skipToNext();
   }, [engine]);
 
   const handleSkipPrev = useCallback(() => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     void engine.skipToPrevious();
   }, [engine]);
 
-  // Gestures: horizontal swipe on mini player skips track; tap expands
-  const swipeGesture = Gesture.Pan()
-    .activeOffsetX([-20, 20])
-    .failOffsetY([-10, 10])
+  // Gestures: horizontal swipe skips track, vertical swipe up or tap expands
+  const panGesture = Gesture.Pan()
     .onEnd((event) => {
       'worklet';
-      if (event.translationX < -40) {
+      if (event.translationY < -30) {
+        runOnJS(onExpand)();
+      } else if (event.translationX < -40) {
         runOnJS(handleSkipNext)();
       } else if (event.translationX > 40) {
         runOnJS(handleSkipPrev)();
@@ -111,7 +115,7 @@ export function OTOMiniPlayer({
     runOnJS(onExpand)();
   });
 
-  const composedGesture = Gesture.Race(swipeGesture, tapGesture);
+  const composedGesture = Gesture.Race(panGesture, tapGesture);
 
   // Pure UI-thread opacity and translation interpolations
   const containerAnimatedStyle = useAnimatedStyle(() => {

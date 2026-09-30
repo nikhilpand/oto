@@ -58,7 +58,8 @@ export function usePlayerMotion({
   }, [isReducedMotion, playerProgress]);
 
   const panGesture = Gesture.Pan()
-    .activeOffsetY([-8, 8])
+    .activeOffsetY([10, 500])
+    .failOffsetX([-20, 20])
     .onStart(() => {
       'worklet';
       // Capture current progress at the exact millisecond of touch (interruptible)

@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -7,6 +8,9 @@ import { ThemeProvider } from '@/design/context/ThemeContext';
 import { PaletteProvider } from '@/design/context/PaletteContext';
 import { AudioEngineProvider } from '@/audio/AudioContext';
 import { PlayerOverlay } from '@/player/components/PlayerOverlay';
+import { usePlaybackStore } from '@/store/usePlaybackStore';
+import mockCatalog from '@/mock/mockCatalog.json';
+import { Track } from '@/domain/types';
 
 /**
  * Root layout — wraps the entire app in GestureHandlerRootView
@@ -15,6 +19,12 @@ import { PlayerOverlay } from '@/player/components/PlayerOverlay';
  * topped with the persistent single player overlay.
  */
 export default function RootLayout() {
+  useEffect(() => {
+    const store = usePlaybackStore.getState();
+    if (!store.currentTrack && mockCatalog.tracks.length > 0) {
+      store.setQueue(mockCatalog.tracks as Track[], 0);
+    }
+  }, []);
   return (
     <GestureHandlerRootView style={styles.root}>
       <ThemeProvider>
