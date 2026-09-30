@@ -15,8 +15,9 @@ import { OTOButtonStories } from './OTOButton.stories';
 import { OTOIconButtonStories } from './OTOIconButton.stories';
 import { OTOGlassSurfaceStories } from './OTOGlassSurface.stories';
 import { OTOArtworkStories } from './OTOArtwork.stories';
+import { ColorHarnessStories } from './ColorHarness.stories';
 
-type StoryTab = 'all' | 'text' | 'button' | 'iconButton' | 'glass' | 'artwork';
+type StoryTab = 'all' | 'text' | 'button' | 'iconButton' | 'glass' | 'artwork' | 'color';
 
 export function StorybookViewer() {
   const [activeTab, setActiveTab] = useState<StoryTab>('all');
@@ -98,6 +99,7 @@ export function StorybookViewer() {
                   ['iconButton', 'IconButton'],
                   ['glass', 'Glass'],
                   ['artwork', 'Artwork'],
+                  ['color', 'Color Harness'],
                 ] as const
               ).map(([key, label]) => (
                 <Pressable
@@ -130,6 +132,7 @@ export function StorybookViewer() {
             {(activeTab === 'all' || activeTab === 'iconButton') && <OTOIconButtonStories />}
             {(activeTab === 'all' || activeTab === 'glass') && <OTOGlassSurfaceStories />}
             {(activeTab === 'all' || activeTab === 'artwork') && <OTOArtworkStories />}
+            {(activeTab === 'all' || activeTab === 'color') && <ColorHarnessStories />}
           </ScrollView>
         </SafeAreaView>
       </ReducedMotionProvider>
