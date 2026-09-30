@@ -49,6 +49,7 @@ export const space = [0, 4, 8, 12, 16, 20, 24, 32, 48] as const;
 // ─── Border Radii ─────────────────────────────────────────────────────
 
 export const radius = {
+  xs: 4, // Badges, progress indicators
   sm: 8, // Chips, small buttons, row indicators
   md: 12, // Cards, context menus
   lg: 20, // Large cards, artwork corners

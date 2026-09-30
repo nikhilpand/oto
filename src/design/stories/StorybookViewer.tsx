@@ -22,8 +22,9 @@ import { PlayerShellStories } from './PlayerShell.stories';
 import { NowPlayingStories } from './NowPlaying.stories';
 import { LyricsStory } from './Lyrics.stories';
 import { QueueStory } from './Queue.stories';
+import { HomeStories } from './Home.stories';
 
-type StoryTab = 'all' | 'text' | 'button' | 'iconButton' | 'glass' | 'artwork' | 'color' | 'audio' | 'derisk' | 'playerShell' | 'nowPlaying' | 'lyrics' | 'queue';
+type StoryTab = 'all' | 'text' | 'button' | 'iconButton' | 'glass' | 'artwork' | 'color' | 'audio' | 'derisk' | 'playerShell' | 'nowPlaying' | 'lyrics' | 'queue' | 'home';
 
 export function StorybookViewer() {
   const [activeTab, setActiveTab] = useState<StoryTab>('all');
@@ -112,6 +113,7 @@ export function StorybookViewer() {
                   ['nowPlaying', 'Now Playing'],
                   ['lyrics', 'Lyrics Engine'],
                   ['queue', 'Queue Manager'],
+                  ['home', 'Home Feed'],
                 ] as const
               ).map(([key, label]) => (
                 <Pressable
@@ -151,6 +153,7 @@ export function StorybookViewer() {
             {(activeTab === 'all' || activeTab === 'nowPlaying') && <NowPlayingStories />}
             {(activeTab === 'all' || activeTab === 'lyrics') && <LyricsStory />}
             {(activeTab === 'all' || activeTab === 'queue') && <QueueStory />}
+            {(activeTab === 'all' || activeTab === 'home') && <HomeStories />}
           </ScrollView>
         </SafeAreaView>
       </ReducedMotionProvider>
