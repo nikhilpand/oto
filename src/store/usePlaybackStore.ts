@@ -11,6 +11,28 @@
 import { create } from 'zustand';
 import { Track } from '@/domain/types';
 import { PlaybackStatus, RepeatMode } from '@/audio/AudioEngine';
+import { useQueueStore } from './useQueueStore';
+
+import { QueueItem } from '@/domain/queue/types';
+
+function toTrack(item: QueueItem): Track {
+  return {
+    id: item.id,
+    title: item.title,
+    artist: item.artist,
+    artists: item.artists,
+    album: item.album,
+    durationMs: item.durationMs,
+    artworkUrl: item.artworkUrl,
+    thumbhash: item.thumbhash,
+    isExplicit: item.isExplicit,
+    ...(item.audioFormat ? { audioFormat: item.audioFormat } : {}),
+    ...(item.bitrate !== undefined ? { bitrate: item.bitrate } : {}),
+    ...(item.lyricsId ? { lyricsId: item.lyricsId } : {}),
+    ...(item.bpm !== undefined ? { bpm: item.bpm } : {}),
+    ...(item.camelotKey ? { camelotKey: item.camelotKey } : {}),
+  };
+}
 
 export interface PlaybackState {
   currentTrack: Track | null;
@@ -62,7 +84,10 @@ export const usePlaybackStore = create<PlaybackState>((set, get) => ({
 
   setRepeatMode: (repeatMode) => set({ repeatMode }),
 
-  setShuffle: (isShuffled) => set({ isShuffled }),
+  setShuffle: (isShuffled) => {
+    set({ isShuffled });
+    useQueueStore.getState().toggleShuffle(isShuffled);
+  },
 
   setQueue: (queue, startIndex = 0) => {
     const validIndex =
@@ -76,44 +101,61 @@ export const usePlaybackStore = create<PlaybackState>((set, get) => ({
       status: currentTrack ? 'ready' : 'idle',
       isPlaying: false,
     });
+
+    if (queue.length > 0) {
+      useQueueStore.getState().playContext(queue, validIndex, {
+        id: 'playback_queue',
+        title: 'Playback Queue',
+        type: 'album',
+      });
+    } else {
+      useQueueStore.getState().reset();
+    }
   },
 
   nextTrack: () => {
-    const { queue, queueIndex, repeatMode } = get();
-    if (queue.length === 0) return null;
-
-    let nextIndex = queueIndex + 1;
-    if (nextIndex >= queue.length) {
-      if (repeatMode === 'all') {
-        nextIndex = 0;
-      } else {
-        return null;
-      }
+    const { queue, repeatMode } = get();
+    const nextItem = useQueueStore.getState().popNext(repeatMode);
+    if (!nextItem) {
+      set({
+        currentTrack: null,
+        queueIndex: -1,
+        status: 'idle',
+      });
+      return null;
     }
 
-    const nextTrack = queue[nextIndex] ?? null;
+    const matchedTrack = queue.find((t) => t.id === nextItem.id);
+    const resolvedTrack: Track = matchedTrack ?? toTrack(nextItem);
+
+    const newIndex = useQueueStore.getState().currentIndex;
     set({
-      queueIndex: nextIndex,
-      currentTrack: nextTrack,
-      status: nextTrack ? 'loading' : 'idle',
+      queueIndex: newIndex,
+      currentTrack: resolvedTrack,
+      status: 'loading',
     });
-    return nextTrack;
+    return resolvedTrack;
   },
 
   prevTrack: () => {
-    const { queue, queueIndex } = get();
-    if (queue.length === 0) return null;
+    const { queue } = get();
+    const prevItem = useQueueStore.getState().popPrevious();
+    if (!prevItem) return null;
 
-    const prevIndex = Math.max(0, queueIndex - 1);
-    const prevTrack = queue[prevIndex] ?? null;
+    const matchedTrack = queue.find((t) => t.id === prevItem.id);
+    const resolvedTrack: Track = matchedTrack ?? toTrack(prevItem);
 
+    const newIndex = useQueueStore.getState().currentIndex;
     set({
-      queueIndex: prevIndex,
-      currentTrack: prevTrack,
-      status: prevTrack ? 'loading' : 'idle',
+      queueIndex: newIndex,
+      currentTrack: resolvedTrack,
+      status: 'loading',
     });
-    return prevTrack;
+    return resolvedTrack;
   },
 
-  reset: () => set(INITIAL_STATE),
+  reset: () => {
+    useQueueStore.getState().reset();
+    set(INITIAL_STATE);
+  },
 }));

@@ -1,6 +1,7 @@
 import { FakeAudioEngine } from '@/audio/FakeAudioEngine';
 import { interpolatePlayhead } from '@/audio/usePlayheadProgress';
 import { usePlaybackStore } from '@/store/usePlaybackStore';
+import { useQueueStore } from '@/store/useQueueStore';
 import { Track } from '@/domain/types';
 
 const MOCK_TRACK: Track = {
@@ -27,11 +28,25 @@ const MOCK_TRACK_2: Track = {
   isExplicit: false,
 };
 
+const MOCK_TRACK_3: Track = {
+  id: 'track_3',
+  title: 'Save Your Tears',
+  artist: 'The Weeknd',
+  artists: ['The Weeknd'],
+  album: 'After Hours',
+  durationMs: 215000,
+  artworkUrl: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=800',
+  thumbhash: '3PcNNQSXeHiId4eAeHh3eIh4eC==',
+  isExplicit: false,
+};
+
 describe('FakeAudioEngine Lifecycle & Control', () => {
   let engine: FakeAudioEngine;
 
   beforeEach(() => {
     jest.useFakeTimers();
+    usePlaybackStore.getState().reset();
+    useQueueStore.getState().reset();
     engine = new FakeAudioEngine();
   });
 
@@ -119,6 +134,52 @@ describe('FakeAudioEngine Lifecycle & Control', () => {
     await engine.setPlaybackRate(1.5);
     expect(engine.getPlaybackRate()).toBe(1.5);
   });
+
+  test('auto-advances to next track at duration end using two-tier queue', async () => {
+    useQueueStore.getState().playContext([MOCK_TRACK, MOCK_TRACK_2], 0, {
+      id: 'test_album',
+      title: 'Test Album',
+      type: 'album',
+    });
+
+    await loadTrack(MOCK_TRACK, true);
+    expect(engine.getCurrentTrack()?.id).toBe(MOCK_TRACK.id);
+
+    // Advance timer past full duration
+    jest.advanceTimersByTime(MOCK_TRACK.durationMs);
+    // Allow load buffer delay
+    jest.advanceTimersByTime(100);
+
+    expect(engine.getCurrentTrack()?.id).toBe(MOCK_TRACK_2.id);
+  });
+
+  test('skipToPrevious seeks to 0 if playing for >3s, or goes to previous track', async () => {
+    useQueueStore.getState().playContext([MOCK_TRACK, MOCK_TRACK_2], 0, {
+      id: 'test_album',
+      title: 'Test Album',
+      type: 'album',
+    });
+
+    await loadTrack(MOCK_TRACK, true);
+
+    // 1. If playing > 3000ms: seek to 0 and stay on same track
+    await engine.seekTo(5000);
+    await engine.skipToPrevious();
+    expect(engine.getPosition()).toBe(0);
+    expect(engine.getCurrentTrack()?.id).toBe(MOCK_TRACK.id);
+
+    // 2. Advance to second track
+    const skipPromise = engine.skipToNext();
+    jest.advanceTimersByTime(50);
+    await skipPromise;
+    expect(engine.getCurrentTrack()?.id).toBe(MOCK_TRACK_2.id);
+
+    // Position is at 0 (< 3000ms), skipping previous goes to track 1
+    const prevPromise = engine.skipToPrevious();
+    jest.advanceTimersByTime(50);
+    await prevPromise;
+    expect(engine.getCurrentTrack()?.id).toBe(MOCK_TRACK.id);
+  });
 });
 
 describe('UI-Thread Playhead Interpolation Math', () => {
@@ -203,6 +264,7 @@ describe('UI-Thread Playhead Interpolation Math', () => {
 describe('Zustand Playback Store Architecture', () => {
   beforeEach(() => {
     usePlaybackStore.getState().reset();
+    useQueueStore.getState().reset();
   });
 
   test('stores discrete playback state and updates accurately', () => {
@@ -232,6 +294,23 @@ describe('Zustand Playback Store Architecture', () => {
 
     store.prevTrack();
     expect(usePlaybackStore.getState().currentTrack).toEqual(MOCK_TRACK);
+  });
+
+  test('two-tier priority queue invariant: Play Next preempts standard tracks', () => {
+    const store = usePlaybackStore.getState();
+    // Context queue: track 1, track 2
+    store.setQueue([MOCK_TRACK, MOCK_TRACK_2], 0);
+
+    // User enqueues track 3 with "Play Next"
+    useQueueStore.getState().playNext(MOCK_TRACK_3);
+
+    // Next track must be track 3 (priority tier), NOT track 2!
+    const next1 = store.nextTrack();
+    expect(next1?.id).toBe(MOCK_TRACK_3.id);
+
+    // Next track after priority queue exhausts must return to standard track 2
+    const next2 = store.nextTrack();
+    expect(next2?.id).toBe(MOCK_TRACK_2.id);
   });
 
   test('GUARANTEE: store has NO continuous playhead position field', () => {

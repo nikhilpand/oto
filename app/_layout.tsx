@@ -12,6 +12,8 @@ import { usePlaybackStore } from '@/store/usePlaybackStore';
 import mockCatalog from '@/mock/mockCatalog.json';
 import { Track } from '@/domain/types';
 
+import { useQueueStore } from '@/store/useQueueStore';
+
 /**
  * Root layout — wraps the entire app in GestureHandlerRootView
  * (required for all gesture-based interactions) and configures
@@ -20,9 +22,13 @@ import { Track } from '@/domain/types';
  */
 export default function RootLayout() {
   useEffect(() => {
-    const store = usePlaybackStore.getState();
-    if (!store.currentTrack && mockCatalog.tracks.length > 0) {
-      store.setQueue(mockCatalog.tracks as Track[], 0);
+    const playbackStore = usePlaybackStore.getState();
+    const queueStore = useQueueStore.getState();
+
+    if (!queueStore.currentTrack && mockCatalog.tracks.length > 0) {
+      playbackStore.setQueue(mockCatalog.tracks as Track[], 0);
+    } else if (queueStore.currentTrack && !playbackStore.currentTrack) {
+      playbackStore.setTrack(queueStore.currentTrack);
     }
   }, []);
   return (

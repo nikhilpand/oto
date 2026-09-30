@@ -18,6 +18,8 @@ import {
   PositionTickCallback,
   ErrorCallback,
 } from './AudioEngine';
+import { useQueueStore } from '@/store/useQueueStore';
+import { usePlaybackStore } from '@/store/usePlaybackStore';
 
 export class FakeAudioEngine implements AudioEngine {
   private currentTrack: Track | null = null;
@@ -82,15 +84,27 @@ export class FakeAudioEngine implements AudioEngine {
   }
 
   async skipToNext(): Promise<void> {
+    const activeRepeat =
+      this.repeatMode !== 'off'
+        ? this.repeatMode
+        : usePlaybackStore.getState().repeatMode;
+
     // If repeat one is on, loop track
-    if (this.repeatMode === 'one' && this.currentTrack) {
+    if (activeRepeat === 'one' && this.currentTrack) {
       await this.seekTo(0);
       return;
     }
-    // Default fake implementation restarts or clears
-    this.stopTimer();
-    this.positionMs = 0;
-    this.setStatus('idle');
+
+    const nextItem = useQueueStore.getState().popNext(activeRepeat);
+    if (nextItem) {
+      await this.load(nextItem, true);
+    } else {
+      this.stopTimer();
+      this.positionMs = 0;
+      this.setStatus('idle');
+      this.currentTrack = null;
+      this.emitTrackChange(null);
+    }
   }
 
   async skipToPrevious(): Promise<void> {
@@ -99,8 +113,14 @@ export class FakeAudioEngine implements AudioEngine {
       await this.seekTo(0);
       return;
     }
-    this.positionMs = 0;
-    this.emitPositionTick(0, Date.now(), this.playbackRate);
+
+    const prevItem = useQueueStore.getState().popPrevious();
+    if (prevItem) {
+      await this.load(prevItem, true);
+    } else {
+      this.positionMs = 0;
+      this.emitPositionTick(0, Date.now(), this.playbackRate);
+    }
   }
 
   async setPlaybackRate(rate: number): Promise<void> {
@@ -220,11 +240,16 @@ export class FakeAudioEngine implements AudioEngine {
 
       // Track completion check
       if (this.positionMs >= this.durationMs) {
-        if (this.repeatMode === 'one') {
+        const activeRepeat =
+          this.repeatMode !== 'off'
+            ? this.repeatMode
+            : usePlaybackStore.getState().repeatMode;
+
+        if (activeRepeat === 'one') {
           this.positionMs = 0;
           this.emitPositionTick(0, now, this.playbackRate);
         } else {
-          this.skipToNext();
+          void this.skipToNext();
         }
       }
     }, 250);
