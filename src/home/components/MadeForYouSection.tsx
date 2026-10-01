@@ -5,8 +5,9 @@
  * primary title, descriptive subtitle, and track count badge.
  */
 
-import React from 'react';
-import { View, StyleSheet, ScrollView, Pressable } from 'react-native';
+import React, { useCallback } from 'react';
+import { View, StyleSheet, ScrollView } from 'react-native';
+import Animated, { FadeInDown, useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import { space, radius } from '@/design/tokens';
 import { OTOText } from '@/design/components/OTOText';
 import { OTOArtwork } from '@/design/components/OTOArtwork';
@@ -39,40 +40,75 @@ export function MadeForYouSection({
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {items.map((item) => (
-          <Pressable
-            key={item.id}
-            accessible
-            accessibilityRole="button"
-            accessibilityLabel={`${item.title}, ${item.subtitle}. Contains ${item.trackCount} tracks.`}
-            accessibilityHint="Plays this playlist"
-            onPress={() => onSelect(item)}
-            style={styles.card}
-          >
-            {/* 150x150 Artwork with rounded corners */}
-            <View style={styles.artworkContainer}>
-              <OTOArtwork
-                uri={item.artworkUrl}
-                thumbhash={item.thumbhash}
-                size={148}
-                borderRadius={radius.md}
-                alt={`${item.title} artwork`}
-              />
-            </View>
-
-            {/* Title & Subtitle */}
-            <View style={styles.infoContainer}>
-              <OTOText variant="caption" weight="bold" numberOfLines={1}>
-                {item.title}
-              </OTOText>
-              <OTOText variant="meta" colorRole="secondary" numberOfLines={2}>
-                {item.subtitle}
-              </OTOText>
-            </View>
-          </Pressable>
+        {items.map((item, idx) => (
+          <MadeForYouCard key={item.id} item={item} index={idx} onSelect={onSelect} />
         ))}
       </ScrollView>
     </View>
+  );
+}
+
+function MadeForYouCard({
+  item,
+  index,
+  onSelect,
+}: {
+  item: MadeForYouItem;
+  index: number;
+  onSelect: (item: MadeForYouItem) => void;
+}): React.JSX.Element {
+  const scale = useSharedValue(1);
+
+  const cardStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  const handlePressIn = useCallback(() => {
+    scale.value = withSpring(0.97, { damping: 18, stiffness: 380 });
+  }, [scale]);
+
+  const handlePressOut = useCallback(() => {
+    scale.value = withSpring(1, { damping: 18, stiffness: 380 });
+  }, [scale]);
+
+  return (
+    <Animated.View
+      entering={FadeInDown.delay(index * 60).duration(400).springify()}
+      style={[styles.card, cardStyle]}
+    >
+      <Animated.View
+        accessible
+        accessibilityRole="button"
+        accessibilityLabel={`${item.title}, ${item.subtitle}. Contains ${item.trackCount} tracks.`}
+        accessibilityHint="Plays this playlist"
+        onTouchStart={handlePressIn}
+        onTouchEnd={() => { handlePressOut(); onSelect(item); }}
+        onTouchCancel={handlePressOut}
+      >
+        <View style={styles.artworkContainer}>
+          <OTOArtwork
+            uri={item.artworkUrl}
+            thumbhash={item.thumbhash}
+            size={150}
+            borderRadius={radius.md}
+            alt={`${item.title} artwork`}
+          />
+          <View style={styles.trackCountBadge}>
+            <OTOText variant="meta" weight="bold" colorRole="primary" style={styles.trackCountText}>
+              {item.trackCount} TRACKS
+            </OTOText>
+          </View>
+        </View>
+        <View style={styles.infoContainer}>
+          <OTOText variant="caption" weight="bold" numberOfLines={1}>
+            {item.title}
+          </OTOText>
+          <OTOText variant="meta" colorRole="secondary" numberOfLines={2}>
+            {item.subtitle}
+          </OTOText>
+        </View>
+      </Animated.View>
+    </Animated.View>
   );
 }
 
@@ -94,15 +130,30 @@ const styles = StyleSheet.create({
     gap: space[1],
   },
   artworkContainer: {
-    width: 148,
-    height: 148,
+    width: 150,
+    height: 150,
     borderRadius: radius.md,
     overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    elevation: 5,
+  },
+  trackCountBadge: {
+    position: 'absolute',
+    bottom: space[1],
+    right: space[1],
+    backgroundColor: 'rgba(10, 11, 14, 0.75)',
+    paddingHorizontal: space[1] + 2,
+    paddingVertical: 2,
+    borderRadius: radius.full,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.14)',
+  },
+  trackCountText: {
+    fontSize: 9,
+    letterSpacing: 0.6,
   },
   infoContainer: {
     gap: 2,

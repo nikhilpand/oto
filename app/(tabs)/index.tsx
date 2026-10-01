@@ -32,7 +32,7 @@ export default function HomeScreen(): React.JSX.Element {
               weight="semibold"
               customColor={color.accent.signature}
             >
-              ← Return to Live Home Feed
+              Back to Live Home Feed
             </OTOText>
           </Pressable>
         </SafeAreaView>

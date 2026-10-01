@@ -23,6 +23,7 @@ import { usePalette } from '@/design/context/PaletteContext';
 import type { ParsedLyrics, LyricLine } from '@/utils/lyrics/types';
 import { OTOLyricLine } from './OTOLyricLine';
 import { LyricsSkeleton } from './LyricsSkeleton';
+import { SyncIcon, MusicNoteIcon } from '@/design/components/OTOIcon';
 
 export interface OTOLyricsProps {
   lyrics?: ParsedLyrics | null;
@@ -36,65 +37,6 @@ export interface OTOLyricsProps {
 }
 
 const VIEWPORT_ANCHOR_RATIO = 0.35; // Keep active line at ~35% from top
-
-function SyncIcon({ color: iconColor = color.accent.signature }: { color?: string }) {
-  return (
-    <View style={{ width: 14, height: 14, justifyContent: 'center', alignItems: 'center' }}>
-      <View
-        style={{
-          width: 10,
-          height: 10,
-          borderRadius: 5,
-          borderWidth: 1.8,
-          borderColor: iconColor,
-          borderTopColor: 'transparent',
-          transform: [{ rotate: '45deg' }],
-        }}
-      />
-    </View>
-  );
-}
-
-function MusicNoteIcon({ color: iconColor = color.text.secondary }: { color?: string }) {
-  return (
-    <View style={{ width: 32, height: 32, justifyContent: 'center', alignItems: 'center' }}>
-      <View
-        style={{
-          width: 8,
-          height: 16,
-          borderRightWidth: 3,
-          borderColor: iconColor,
-          position: 'absolute',
-          top: 4,
-          right: 10,
-        }}
-      />
-      <View
-        style={{
-          width: 10,
-          height: 8,
-          borderRadius: 4,
-          backgroundColor: iconColor,
-          position: 'absolute',
-          bottom: 6,
-          left: 8,
-          transform: [{ rotate: '-25deg' }],
-        }}
-      />
-      <View
-        style={{
-          width: 8,
-          height: 4,
-          backgroundColor: iconColor,
-          position: 'absolute',
-          top: 4,
-          right: 7,
-          borderRadius: 2,
-        }}
-      />
-    </View>
-  );
-}
 
 export const OTOLyrics = memo(function OTOLyrics({
   lyrics,

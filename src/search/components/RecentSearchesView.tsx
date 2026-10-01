@@ -4,9 +4,10 @@
  * Horizontal chip row of recent queries with one-tap re-search and removal.
  */
 
-import { FlatList, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { color, radius, space } from '@/design/tokens';
 import { OTOText } from '@/design/components/OTOText';
+import { CloseIcon } from '@/design/components/OTOIcon';
 
 interface Props {
   queries: string[];
@@ -34,14 +35,13 @@ export function RecentSearchesView({ queries, onSelect, onRemove, onClearAll }: 
       </View>
 
       {/* Chips */}
-      <FlatList
+      <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        data={queries}
-        keyExtractor={(item) => item}
         contentContainerStyle={styles.chipRow}
-        renderItem={({ item }) => (
-          <View style={styles.chip}>
+      >
+        {queries.map((item) => (
+          <View key={item} style={styles.chip}>
             <Pressable
               onPress={() => onSelect(item)}
               accessibilityRole="button"
@@ -59,11 +59,11 @@ export function RecentSearchesView({ queries, onSelect, onRemove, onClearAll }: 
               accessibilityLabel={`Remove ${item} from recent searches`}
               style={styles.chipRemove}
             >
-              <OTOText variant="caption" customColor={color.text.tertiary}>✕</OTOText>
+              <CloseIcon size={12} color={color.text.tertiary} />
             </Pressable>
           </View>
-        )}
-      />
+        ))}
+      </ScrollView>
     </View>
   );
 }

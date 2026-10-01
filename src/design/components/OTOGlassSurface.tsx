@@ -7,6 +7,7 @@ import {
   StyleProp,
   ViewStyle,
 } from 'react-native';
+import { BlurView } from 'expo-blur';
 import {
   GlassView,
   isLiquidGlassAvailable,
@@ -23,9 +24,10 @@ export interface OTOGlassSurfaceProps extends ViewProps {
 }
 
 /**
- * OTOGlassSurface — Liquid Glass container with verified Android fallback.
+ * OTOGlassSurface — Liquid Glass container with multi-tier fallback.
  * - iOS 26+ (Tier >= 2): Native Liquid Glass via `expo-glass-effect`.
- * - Android & Tier <= 1: Polished solid dark tint with hairline border and top edge highlight.
+ * - Android Tier >= 2: `expo-blur` BlurView (dark tint, intensity 60).
+ * - Tier <= 1 / old iOS: Polished solid dark tint with hairline border and top highlight.
  */
 export function OTOGlassSurface({
   borderRadius = radius.xl,
@@ -51,6 +53,8 @@ export function OTOGlassSurface({
       return false;
     }
   }, [tier, forceSolidFallback]);
+
+  const canUseBlur = !forceSolidFallback && tier >= QualityTier.Balanced;
 
   const containerStyle: ViewStyle = {
     borderRadius,
@@ -78,7 +82,22 @@ export function OTOGlassSurface({
     );
   }
 
-  // Android & Tier <= 1 solid fallback
+  // Android Tier >= 2: expo-blur gives real translucency
+  if (Platform.OS === 'android' && canUseBlur) {
+    return (
+      <BlurView
+        intensity={55}
+        tint="dark"
+        experimentalBlurMethod="dimezisBlurView"
+        style={[containerStyle, highlightBorder, style]}
+        {...(rest as object)}
+      >
+        {children}
+      </BlurView>
+    );
+  }
+
+  // Tier <= 1 solid fallback
   return (
     <View
       style={[

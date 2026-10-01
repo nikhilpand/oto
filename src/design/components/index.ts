@@ -3,3 +3,4 @@ export * from './OTOIconButton';
 export * from './OTOButton';
 export * from './OTOGlassSurface';
 export * from './OTOArtwork';
+export * from './OTOIcon';

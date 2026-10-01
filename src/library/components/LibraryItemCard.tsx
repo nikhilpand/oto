@@ -5,9 +5,10 @@
  * Meets 44pt/48dp touch targets for all interactive areas.
  */
 
-import { Image, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { color, radius, space } from '@/design/tokens';
 import { OTOText } from '@/design/components/OTOText';
+import { OTOArtwork } from '@/design/components/OTOArtwork';
 import { DownloadStatusBadge } from './DownloadStatusBadge';
 import type { LibraryItem } from '../types';
 
@@ -28,11 +29,12 @@ export function LibraryItemCard({ item, onPress, columnWidth }: Props) {
       accessibilityRole="button"
       accessibilityLabel={`${item.title}, ${item.subtitle}`}
     >
-      <Image
-        source={{ uri: item.artworkUrl }}
+      <OTOArtwork
+        uri={item.artworkUrl}
+        size={artSize}
+        borderRadius={isCircle ? artSize / 2 : radius.md}
         style={[
           styles.artwork,
-          { width: artSize, height: artSize },
           isCircle && styles.artworkCircle,
         ]}
         accessibilityLabel={item.title}

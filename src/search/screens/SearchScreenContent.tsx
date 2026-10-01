@@ -10,9 +10,14 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Platform, SafeAreaView, ScrollView, StyleSheet, View } from 'react-native';
-import { color, space } from '@/design/tokens';
+import { Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import * as Haptics from 'expo-haptics';
+import { color, space, radius } from '@/design/tokens';
 import { OTOText } from '@/design/components/OTOText';
+import { OTOArtwork } from '@/design/components/OTOArtwork';
+import { useAudioEngine } from '@/audio/AudioContext';
+import { useQueueStore } from '@/store/useQueueStore';
 import { SearchInputBar } from '../components/SearchInputBar';
 import { RecentSearchesView } from '../components/RecentSearchesView';
 import { TopResultCard } from '../components/TopResultCard';
@@ -34,18 +39,29 @@ const DEBOUNCE_MS = 180;
 
 // ─── Result Row Components ────────────────────────────────────────────
 
-function TrackRow({ track }: { track: Track }) {
+function TrackRow({ track, onPlay }: { track: Track; onPlay: (track: Track) => void }) {
   const mins = Math.floor(track.durationMs / 60000);
   const secs = String(Math.floor((track.durationMs % 60000) / 1000)).padStart(2, '0');
   return (
-    <View style={rowStyles.container} accessibilityRole="button" accessibilityLabel={`${track.title} by ${track.artist}`}>
-      <View style={rowStyles.artwork} />
+    <Pressable
+      style={({ pressed }) => [rowStyles.container, pressed && rowStyles.pressed]}
+      onPress={() => onPlay(track)}
+      accessibilityRole="button"
+      accessibilityLabel={`${track.title} by ${track.artist}. Tap to play.`}
+    >
+      <OTOArtwork
+        uri={track.artworkUrl}
+        thumbhash={track.thumbhash}
+        size={44}
+        borderRadius={radius.xs}
+        style={rowStyles.artwork}
+      />
       <View style={rowStyles.meta}>
         <OTOText variant="body" weight="semibold" numberOfLines={1}>{track.title}</OTOText>
         <OTOText variant="meta" customColor={color.text.secondary} numberOfLines={1}>{track.artist}</OTOText>
       </View>
       <OTOText variant="meta" customColor={color.text.tertiary}>{mins}:{secs}</OTOText>
-    </View>
+    </Pressable>
   );
 }
 
@@ -65,6 +81,7 @@ const rowStyles = StyleSheet.create({
     marginRight: space[3],
   },
   meta: { flex: 1 },
+  pressed: { opacity: 0.75 },
 });
 
 // ─── Section Header ───────────────────────────────────────────────────
@@ -127,18 +144,45 @@ export function SearchScreenContent() {
     setRecentQueries([]);
   }, []);
 
-  const handleTopResultPress = useCallback((result: TopResult) => {
-    if (result.kind === 'track' && result.track) {
-      addRecentQuery(result.track.title);
-    } else if (result.kind === 'artist' && result.artist) {
-      addRecentQuery(result.artist.name);
-    } else if (result.kind === 'album' && result.album) {
-      addRecentQuery(result.album.title);
-    } else if (result.kind === 'playlist' && result.playlist) {
-      addRecentQuery(result.playlist.title);
-    }
-    setRecentQueries(getRecentQueries());
-  }, []);
+  const engine = useAudioEngine();
+  const playContext = useQueueStore((s) => s.playContext);
+
+  const handlePlayTrack = useCallback(
+    (track: Track, tracksContext?: Track[]) => {
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      const list = tracksContext && tracksContext.length > 0 ? tracksContext : [track];
+      const targetIndex = Math.max(0, list.findIndex((t) => t.id === track.id));
+
+      playContext(list, targetIndex, {
+        id: 'search_results',
+        title: 'Search Results',
+        type: 'playlist',
+      });
+
+      void engine.load(track, true);
+      addRecentQuery(track.title);
+      setRecentQueries(getRecentQueries());
+    },
+    [engine, playContext]
+  );
+
+  const handleTopResultPress = useCallback(
+    (result: TopResult) => {
+      if (result.kind === 'track' && result.track) {
+        handlePlayTrack(result.track, results?.tracks);
+      } else if (result.kind === 'artist' && result.artist) {
+        addRecentQuery(result.artist.name);
+        setRecentQueries(getRecentQueries());
+      } else if (result.kind === 'album' && result.album) {
+        addRecentQuery(result.album.title);
+        setRecentQueries(getRecentQueries());
+      } else if (result.kind === 'playlist' && result.playlist) {
+        addRecentQuery(result.playlist.title);
+        setRecentQueries(getRecentQueries());
+      }
+    },
+    [handlePlayTrack, results?.tracks]
+  );
 
   const handleSuggestionPress = useCallback((suggestion: SearchSuggestion) => {
     handleChangeText(suggestion.label);
@@ -202,7 +246,11 @@ export function SearchScreenContent() {
               <>
                 <SectionHeader title="Songs" />
                 {results.tracks.slice(0, 5).map((track) => (
-                  <TrackRow key={track.id} track={track} />
+                  <TrackRow
+                    key={track.id}
+                    track={track}
+                    onPlay={(t) => handlePlayTrack(t, results.tracks)}
+                  />
                 ))}
               </>
             )}
@@ -211,15 +259,28 @@ export function SearchScreenContent() {
               <>
                 <SectionHeader title="Artists" />
                 {results.artists.slice(0, 3).map((artist) => (
-                  <View key={artist.id} style={rowStyles.container}>
-                    <View style={[rowStyles.artwork, { borderRadius: 22 }]} />
+                  <Pressable
+                    key={artist.id}
+                    style={({ pressed }) => [rowStyles.container, pressed && rowStyles.pressed]}
+                    onPress={() => {
+                      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      addRecentQuery(artist.name);
+                      setRecentQueries(getRecentQueries());
+                    }}
+                  >
+                    <OTOArtwork
+                      uri={artist.artworkUrl}
+                      size={44}
+                      borderRadius={22}
+                      style={rowStyles.artwork}
+                    />
                     <View style={rowStyles.meta}>
                       <OTOText variant="body" weight="semibold" numberOfLines={1}>{artist.name}</OTOText>
                       <OTOText variant="meta" customColor={color.text.secondary}>
-                        {artist.isVerified ? '✓ Verified · ' : ''}{artist.trackCount} songs
+                        {artist.isVerified ? 'Verified · ' : ''}{artist.trackCount} songs
                       </OTOText>
                     </View>
-                  </View>
+                  </Pressable>
                 ))}
               </>
             )}
@@ -228,13 +289,26 @@ export function SearchScreenContent() {
               <>
                 <SectionHeader title="Albums" />
                 {results.albums.slice(0, 3).map((album) => (
-                  <View key={album.id} style={rowStyles.container}>
-                    <View style={rowStyles.artwork} />
+                  <Pressable
+                    key={album.id}
+                    style={({ pressed }) => [rowStyles.container, pressed && rowStyles.pressed]}
+                    onPress={() => {
+                      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      addRecentQuery(album.title);
+                      setRecentQueries(getRecentQueries());
+                    }}
+                  >
+                    <OTOArtwork
+                      uri={album.artworkUrl}
+                      size={44}
+                      borderRadius={radius.xs}
+                      style={rowStyles.artwork}
+                    />
                     <View style={rowStyles.meta}>
                       <OTOText variant="body" weight="semibold" numberOfLines={1}>{album.title}</OTOText>
                       <OTOText variant="meta" customColor={color.text.secondary}>{album.artist} · {album.year}</OTOText>
                     </View>
-                  </View>
+                  </Pressable>
                 ))}
               </>
             )}
@@ -243,15 +317,28 @@ export function SearchScreenContent() {
               <>
                 <SectionHeader title="Playlists" />
                 {results.playlists.slice(0, 3).map((playlist) => (
-                  <View key={playlist.id} style={rowStyles.container}>
-                    <View style={rowStyles.artwork} />
+                  <Pressable
+                    key={playlist.id}
+                    style={({ pressed }) => [rowStyles.container, pressed && rowStyles.pressed]}
+                    onPress={() => {
+                      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      addRecentQuery(playlist.title);
+                      setRecentQueries(getRecentQueries());
+                    }}
+                  >
+                    <OTOArtwork
+                      uri={playlist.artworkUrl}
+                      size={44}
+                      borderRadius={radius.xs}
+                      style={rowStyles.artwork}
+                    />
                     <View style={rowStyles.meta}>
                       <OTOText variant="body" weight="semibold" numberOfLines={1}>{playlist.title}</OTOText>
                       <OTOText variant="meta" customColor={color.text.secondary}>
                         {playlist.curated ? 'Playlist · ' : ''}{playlist.trackCount} songs
                       </OTOText>
                     </View>
-                  </View>
+                  </Pressable>
                 ))}
               </>
             )}

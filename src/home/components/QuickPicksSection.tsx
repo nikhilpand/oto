@@ -6,33 +6,18 @@
  */
 
 import React from 'react';
-import { View, StyleSheet, Pressable, Platform } from 'react-native';
+import { View, StyleSheet, Platform } from 'react-native';
+import Animated, { FadeInLeft, useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
+import { Pressable } from 'react-native';
 import { color, space, radius, touchTarget } from '@/design/tokens';
 import { OTOText } from '@/design/components/OTOText';
 import { OTOArtwork } from '@/design/components/OTOArtwork';
+import { PlayIcon } from '@/design/components/OTOIcon';
 import { Track } from '@/domain/types';
 
 export interface QuickPicksSectionProps {
   tracks: Track[];
   onPlayTrack: (track: Track) => void;
-}
-
-function MiniPlayIcon() {
-  return (
-    <View
-      style={{
-        width: 0,
-        height: 0,
-        borderLeftWidth: 8,
-        borderTopWidth: 5,
-        borderBottomWidth: 5,
-        borderLeftColor: color.text.secondary,
-        borderTopColor: 'transparent',
-        borderBottomColor: 'transparent',
-        marginLeft: 2,
-      }}
-    />
-  );
 }
 
 export function QuickPicksSection({
@@ -59,59 +44,75 @@ export function QuickPicksSection({
 
       <View style={styles.listContainer}>
         {tracks.map((track, idx) => (
-          <Pressable
+          <QuickPickRow
             key={track.id}
-            accessible
-            accessibilityRole="button"
-            accessibilityLabel={`Play ${track.title} by ${track.artist}`}
-            onPress={() => onPlayTrack(track)}
-            style={[styles.row, { minHeight: minTouch }]}
-          >
-            {/* Rank index */}
-            <View style={styles.rankContainer}>
-              <OTOText variant="meta" weight="bold" colorRole="tertiary">
-                {idx + 1}
-              </OTOText>
-            </View>
-
-            {/* 46x46 Artwork Thumbnail */}
-            <View style={styles.artworkContainer}>
-              <OTOArtwork
-                uri={track.artworkUrl}
-                thumbhash={track.thumbhash}
-                size={46}
-                borderRadius={radius.xs}
-                alt={`${track.title} artwork`}
-              />
-            </View>
-
-            {/* Title & Artist */}
-            <View style={styles.metaContainer}>
-              <OTOText variant="caption" weight="semibold" numberOfLines={1}>
-                {track.title}
-              </OTOText>
-              <View style={styles.artistRow}>
-                {track.isExplicit && (
-                  <View style={styles.explicitBadge}>
-                    <OTOText variant="meta" weight="bold" colorRole="secondary">
-                      E
-                    </OTOText>
-                  </View>
-                )}
-                <OTOText variant="meta" colorRole="secondary" numberOfLines={1}>
-                  {track.artist}
-                </OTOText>
-              </View>
-            </View>
-
-            {/* Play trigger indicator */}
-            <View style={styles.playButton}>
-              <MiniPlayIcon />
-            </View>
-          </Pressable>
+            track={track}
+            index={idx}
+            minHeight={minTouch}
+            onPlayTrack={onPlayTrack}
+          />
         ))}
       </View>
     </View>
+  );
+}
+
+function QuickPickRow({
+  track,
+  index,
+  minHeight,
+  onPlayTrack,
+}: {
+  track: Track;
+  index: number;
+  minHeight: number;
+  onPlayTrack: (track: Track) => void;
+}): React.JSX.Element {
+  const scale = useSharedValue(1);
+  const rowStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+
+  return (
+    <Animated.View
+      entering={FadeInLeft.delay(index * 40).duration(350).springify()}
+      style={rowStyle}
+    >
+      <Pressable
+        accessible
+        accessibilityRole="button"
+        accessibilityLabel={`Play ${track.title} by ${track.artist}`}
+        onPress={() => onPlayTrack(track)}
+        onPressIn={() => { scale.value = withSpring(0.97, { damping: 18, stiffness: 380 }); }}
+        onPressOut={() => { scale.value = withSpring(1, { damping: 18, stiffness: 380 }); }}
+        style={[styles.row, { minHeight }]}
+      >
+        <View style={styles.rankContainer}>
+          <OTOText variant="meta" weight="bold" colorRole="tertiary">{index + 1}</OTOText>
+        </View>
+        <View style={styles.artworkContainer}>
+          <OTOArtwork
+            uri={track.artworkUrl}
+            thumbhash={track.thumbhash}
+            size={46}
+            borderRadius={radius.xs}
+            alt={`${track.title} artwork`}
+          />
+        </View>
+        <View style={styles.metaContainer}>
+          <OTOText variant="caption" weight="semibold" numberOfLines={1}>{track.title}</OTOText>
+          <View style={styles.artistRow}>
+            {track.isExplicit && (
+              <View style={styles.explicitBadge}>
+                <OTOText variant="meta" weight="bold" colorRole="secondary">E</OTOText>
+              </View>
+            )}
+            <OTOText variant="meta" colorRole="secondary" numberOfLines={1}>{track.artist}</OTOText>
+          </View>
+        </View>
+        <View style={styles.playButton}>
+          <PlayIcon size={11} color={color.text.secondary} focused />
+        </View>
+      </Pressable>
+    </Animated.View>
   );
 }
 
@@ -136,6 +137,10 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     gap: space[2],
   },
+  rowPressed: {
+    backgroundColor: color.bg.s2,
+    opacity: 0.9,
+  },
   rankContainer: {
     width: 20,
     alignItems: 'center',
@@ -146,6 +151,11 @@ const styles = StyleSheet.create({
     height: 46,
     borderRadius: radius.xs,
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 2,
   },
   metaContainer: {
     flex: 1,
@@ -167,7 +177,15 @@ const styles = StyleSheet.create({
     height: 32,
     borderRadius: radius.full,
     backgroundColor: color.bg.s2,
+    borderWidth: 1,
+    borderColor: color.hairline,
+    borderTopColor: color.glass.highlight,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 2,
   },
 });

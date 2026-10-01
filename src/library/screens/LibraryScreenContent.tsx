@@ -11,21 +11,26 @@
 
 import { useCallback, useMemo, useState } from 'react';
 import {
-  FlatList,
-  SafeAreaView,
   StyleSheet,
   useWindowDimensions,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { FlashList } from '@shopify/flash-list';
+import * as Haptics from 'expo-haptics';
 import { color, space } from '@/design/tokens';
 import { OTOText } from '@/design/components/OTOText';
+import { useAudioEngine } from '@/audio/AudioContext';
+import { useQueueStore } from '@/store/useQueueStore';
 import { LibraryFilterBar } from '../components/LibraryFilterBar';
 import { LikedSongsCard } from '../components/LikedSongsCard';
 import { LibraryItemRow } from '../components/LibraryItemRow';
 import { LibraryItemCard } from '../components/LibraryItemCard';
 import { LibraryToolbar } from '../components/LibraryToolbar';
 import { MOCK_LIBRARY_ITEMS, LIKED_SONGS_INFO } from '../data/mockLibraryData';
+import { CATALOG_TRACKS } from '@/search/data/searchCatalog';
 import type { LibraryFilter, LibraryItem, LibrarySortOrder, LibraryViewMode } from '../types';
+import type { Track } from '@/domain/types';
 
 // ─── Utility ─────────────────────────────────────────────────────────
 
@@ -58,6 +63,9 @@ export function LibraryScreenContent() {
   const [viewMode, setViewMode] = useState<LibraryViewMode>('list');
   const isOffline = false; // TODO: hook into network state in P12
 
+  const engine = useAudioEngine();
+  const playContext = useQueueStore((s) => s.playContext);
+
   const { width } = useWindowDimensions();
   const columnWidth = (width - space[4] * 2) / 2;
 
@@ -66,15 +74,46 @@ export function LibraryScreenContent() {
     [filter, sortOrder, isOffline],
   );
 
-  const handleItemPress = useCallback((item: LibraryItem) => {
-    // TODO: navigate to item detail in P11
-    console.log('library item pressed:', item.id);
-  }, []);
+  const handleItemPress = useCallback(
+    (item: LibraryItem) => {
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      let tracksToPlay: Track[] = [];
+      if (item.kind === 'album' && item.album) {
+        tracksToPlay = CATALOG_TRACKS.filter((t) => t.album === item.album?.title);
+      } else if (item.kind === 'artist' && item.artist) {
+        tracksToPlay = CATALOG_TRACKS.filter((t) => t.artist === item.artist?.name);
+      }
+      if (tracksToPlay.length === 0) {
+        tracksToPlay = CATALOG_TRACKS.slice(0, 5);
+      }
+      playContext(tracksToPlay, 0, {
+        id: item.id,
+        title: item.title,
+        type: item.kind === 'playlist' ? 'playlist' : 'album',
+      });
+      const firstTrack = tracksToPlay[0];
+      if (firstTrack) {
+        void engine.load(firstTrack, true);
+      }
+    },
+    [engine, playContext]
+  );
 
   const handleLikedSongsPlay = useCallback(() => {
-    // TODO: play liked songs via AudioEngine in P10
-    console.log('play liked songs');
-  }, []);
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    const tracks = LIKED_SONGS_INFO.tracks;
+    if (tracks.length > 0) {
+      playContext(tracks, 0, {
+        id: 'liked_songs',
+        title: 'Liked Songs',
+        type: 'playlist',
+      });
+      const firstTrack = tracks[0];
+      if (firstTrack) {
+        void engine.load(firstTrack, true);
+      }
+    }
+  }, [engine, playContext]);
 
   const renderItem = useCallback(({ item }: { item: LibraryItem }) => {
     if (viewMode === 'grid') {
@@ -117,14 +156,14 @@ export function LibraryScreenContent() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <FlatList
+      <FlashList
         data={filteredItems}
         renderItem={renderItem}
         keyExtractor={keyExtractor}
         ListHeaderComponent={ListHeader}
         ListEmptyComponent={ListEmpty}
         numColumns={viewMode === 'grid' ? 2 : 1}
-        key={viewMode} // re-mount FlatList on view mode change to reset numColumns
+        key={viewMode}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.list}
       />

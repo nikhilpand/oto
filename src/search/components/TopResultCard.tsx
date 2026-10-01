@@ -5,9 +5,10 @@
  * Handles track, artist, album, and playlist variants.
  */
 
-import { Image, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { color, radius, space } from '@/design/tokens';
 import { OTOText } from '@/design/components/OTOText';
+import { OTOArtwork } from '@/design/components/OTOArtwork';
 import type { TopResult } from '../types';
 
 interface Props {
@@ -61,8 +62,10 @@ export function TopResultCard({ result, onPress }: Props) {
         accessibilityRole="button"
         accessibilityLabel={`Top result: ${meta.title} · ${meta.subtitle}`}
       >
-        <Image
-          source={{ uri: meta.artworkUrl }}
+        <OTOArtwork
+          uri={meta.artworkUrl}
+          size={96}
+          borderRadius={isCircle ? 48 : radius.md}
           style={[styles.artwork, isCircle && styles.artworkCircle]}
           accessibilityLabel={meta.title}
         />

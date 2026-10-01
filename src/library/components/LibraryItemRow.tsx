@@ -5,9 +5,10 @@
  * Meets 64dp minimum row height and includes DownloadStatusBadge.
  */
 
-import { Image, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { color, radius, space } from '@/design/tokens';
 import { OTOText } from '@/design/components/OTOText';
+import { OTOArtwork } from '@/design/components/OTOArtwork';
 import { DownloadStatusBadge } from './DownloadStatusBadge';
 import type { LibraryItem } from '../types';
 
@@ -26,8 +27,10 @@ export function LibraryItemRow({ item, onPress }: Props) {
       accessibilityRole="button"
       accessibilityLabel={`${item.title}, ${item.subtitle}`}
     >
-      <Image
-        source={{ uri: item.artworkUrl }}
+      <OTOArtwork
+        uri={item.artworkUrl}
+        size={52}
+        borderRadius={isCircle ? 26 : radius.sm}
         style={[styles.artwork, isCircle && styles.artworkCircle]}
         accessibilityLabel={item.title}
       />

@@ -5,9 +5,11 @@
  * glowing OKLCH gradient accent wash, and one-tap play.
  */
 
-import { Image, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { color, radius, space } from '@/design/tokens';
 import { OTOText } from '@/design/components/OTOText';
+import { OTOArtwork } from '@/design/components/OTOArtwork';
+import { PlayIcon } from '@/design/components/OTOIcon';
 import type { LikedSongsInfo } from '../types';
 
 interface Props {
@@ -37,7 +39,7 @@ export function LikedSongsCard({ info, onPlay }: Props) {
               style={[styles.mosaicCell, i === 0 && styles.mosaicTL, i === 1 && styles.mosaicTR, i === 2 && styles.mosaicBL, i === 3 && styles.mosaicBR]}
             >
               {url ? (
-                <Image source={{ uri: url }} style={styles.mosaicImg} accessibilityLabel="" />
+                <OTOArtwork uri={url} size={28} style={styles.mosaicImg} />
               ) : (
                 <View style={[styles.mosaicImg, { backgroundColor: color.bg.s3 }]} />
               )}
@@ -55,7 +57,7 @@ export function LikedSongsCard({ info, onPlay }: Props) {
 
         {/* Play button */}
         <View style={styles.playBtn} accessibilityLabel="Play liked songs">
-          <OTOText variant="body" customColor={color.bg.base} weight="bold">▶</OTOText>
+          <PlayIcon size={16} color={color.bg.base} />
         </View>
       </View>
     </Pressable>
@@ -67,50 +69,64 @@ const styles = StyleSheet.create({
     marginHorizontal: space[4],
     marginBottom: space[3],
     borderRadius: radius.lg,
-    backgroundColor: color.accent.signature + '33',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: color.accent.signature + '66',
+    backgroundColor: color.bg.s2,
+    borderWidth: 1,
+    borderColor: color.hairline,
+    borderTopColor: 'rgba(255, 255, 255, 0.12)',
     overflow: 'hidden',
-    minHeight: 80,
+    minHeight: 88,
   },
-  pressed: { opacity: 0.85 },
+  pressed: {
+    opacity: 0.9,
+    transform: [{ scale: 0.99 }],
+  },
   glow: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: color.accent.signature + '11',
+    backgroundColor: color.accent.signature + '14', // Subtle warm luminous ambient wash
   },
   content: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: space[4],
-    gap: space[4],
+    gap: space[3],
   },
   mosaic: {
-    width: 56,
-    height: 56,
-    borderRadius: radius.sm,
+    width: 58,
+    height: 58,
+    borderRadius: radius.md,
     overflow: 'hidden',
     flexDirection: 'row',
     flexWrap: 'wrap',
+    borderWidth: 1,
+    borderColor: color.hairline,
   },
   mosaicCell: {
-    width: 28,
-    height: 28,
+    width: 29,
+    height: 29,
   },
   mosaicTL: { borderTopLeftRadius: radius.sm },
   mosaicTR: { borderTopRightRadius: radius.sm },
   mosaicBL: { borderBottomLeftRadius: radius.sm },
   mosaicBR: { borderBottomRightRadius: radius.sm },
   mosaicImg: {
-    width: 28,
-    height: 28,
+    width: 29,
+    height: 29,
   },
-  meta: { flex: 1 },
+  meta: {
+    flex: 1,
+    gap: 3,
+  },
   playBtn: {
-    width: 44,
-    height: 44,
+    width: 48,
+    height: 48,
     borderRadius: radius.full,
     backgroundColor: color.accent.signature,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: color.accent.signature,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    elevation: 6,
   },
 });

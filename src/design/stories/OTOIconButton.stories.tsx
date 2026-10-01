@@ -1,16 +1,9 @@
 import { View, StyleSheet } from 'react-native';
 import { OTOIconButton } from '@/design/components/OTOIconButton';
 import { OTOText } from '@/design/components/OTOText';
+import { PlayIcon, PauseIcon } from '@/design/components/OTOIcon';
 import { space, color } from '@/design/tokens';
 import { ReducedMotionProvider } from '@/design/hooks/useReducedMotion';
-
-function DummyPlayIcon() {
-  return <OTOText variant="track" colorRole="primary">▶</OTOText>;
-}
-
-function DummyPauseIcon() {
-  return <OTOText variant="track" colorRole="primary">⏸</OTOText>;
-}
 
 export function OTOIconButtonStories() {
   return (
@@ -25,11 +18,11 @@ export function OTOIconButtonStories() {
         </OTOText>
         <View style={styles.row}>
           <OTOIconButton
-            icon={<DummyPlayIcon />}
+            icon={<PlayIcon size={20} color={color.text.primary} />}
             accessibilityLabel="Play track"
           />
           <OTOIconButton
-            icon={<DummyPauseIcon />}
+            icon={<PauseIcon size={20} color={color.text.primary} />}
             accessibilityLabel="Pause track"
           />
         </View>
@@ -39,7 +32,7 @@ export function OTOIconButtonStories() {
         <OTOText variant="caption" colorRole="tertiary">2. Disabled State</OTOText>
         <View style={styles.row}>
           <OTOIconButton
-            icon={<DummyPlayIcon />}
+            icon={<PlayIcon size={20} color={color.text.primary} />}
             accessibilityLabel="Play track (disabled)"
             disabled
           />
@@ -50,7 +43,7 @@ export function OTOIconButtonStories() {
         <OTOText variant="caption" colorRole="tertiary">3. Loading State</OTOText>
         <View style={styles.row}>
           <OTOIconButton
-            icon={<DummyPlayIcon />}
+            icon={<PlayIcon size={20} color={color.text.primary} />}
             accessibilityLabel="Buffering track"
             loading
           />
@@ -62,7 +55,7 @@ export function OTOIconButtonStories() {
         <ReducedMotionProvider reducedMotion={true}>
           <View style={styles.row}>
             <OTOIconButton
-              icon={<DummyPlayIcon />}
+              icon={<PlayIcon size={20} color={color.text.primary} />}
               accessibilityLabel="Play track (reduced motion)"
             />
           </View>

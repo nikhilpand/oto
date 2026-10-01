@@ -115,11 +115,10 @@ export function OTOProgressBar({
   // Scrub thumb / knob animated position and scale
   const thumbAnimatedStyle = useAnimatedStyle(() => {
     const currentProgress = isDragging.value ? dragRatio.value : progress.value;
-    const scale = isDragging.value ? withSpring(1.4, spring.spatial.playful) : withSpring(1, spring.spatial.fast);
-    const opacity = isDragging.value ? 1 : 0.8;
+    const scale = isDragging.value ? withSpring(1.35, spring.spatial.playful) : withSpring(1, spring.spatial.fast);
     return {
       left: `${Math.max(0, Math.min(100, currentProgress * 100))}%`,
-      opacity,
+      opacity: 1,
       transform: [{ scale }],
     };
   });
@@ -154,7 +153,6 @@ export function OTOProgressBar({
           accessibilityValue={{
             min: 0,
             max: 100,
-            now: Math.round(progress.value * 100),
           }}
           accessibilityActions={[
             { name: 'increment', label: 'Forward 10 seconds' },
@@ -203,7 +201,7 @@ function ElapsedLabel({
   dragRatio: SharedValue<number>;
   durationMs: number;
 }) {
-  const [displayText, setDisplayText] = useState(() => formatMsToTime(positionMs.value));
+  const [displayText, setDisplayText] = useState(() => formatMsToTime(0));
   const lastSecond = useSharedValue(-1);
 
   useFrameCallback(() => {
@@ -292,16 +290,16 @@ const styles = StyleSheet.create({
   },
   thumb: {
     position: 'absolute',
-    width: 12,
-    height: 12,
-    marginLeft: -6,
+    width: 14,
+    height: 14,
+    marginLeft: -7,
     borderRadius: radius.full,
     backgroundColor: color.text.primary,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.35,
-    shadowRadius: 4,
-    elevation: 4,
+    shadowOpacity: 0.4,
+    shadowRadius: 5,
+    elevation: 5,
   },
   timeRow: {
     flexDirection: 'row',

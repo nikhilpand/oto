@@ -38,24 +38,41 @@ export function SearchEmptyState({ mode, query, onSuggestionPress }: Props) {
         </OTOText>
       )}
 
-      {/* Suggestion Chips Grid */}
+      {/* Suggestion Cards Grid */}
       <View style={styles.grid}>
         {SEARCH_SUGGESTIONS.map((suggestion) => (
           <Pressable
             key={suggestion.id}
             style={({ pressed }) => [
-              styles.chip,
-              { backgroundColor: suggestion.accentColor + '26' }, // 15% opacity
-              pressed && styles.chipPressed,
+              styles.card,
+              {
+                backgroundColor: suggestion.accentColor + '1F',
+                borderColor: suggestion.accentColor + '40',
+              },
+              pressed && styles.cardPressed,
             ]}
             onPress={() => onSuggestionPress(suggestion)}
             accessibilityRole="button"
             accessibilityLabel={`Browse ${suggestion.label}`}
           >
-            <View style={[styles.chipAccent, { backgroundColor: suggestion.accentColor }]} />
-            <OTOText variant="body" weight="semibold" customColor={color.text.primary}>
-              {suggestion.label}
-            </OTOText>
+            {/* Top edge specular highlight */}
+            <View style={[styles.topHighlight, { backgroundColor: suggestion.accentColor + '30' }]} />
+
+            {/* Stylized vinyl groove emblem on bottom right */}
+            <View style={styles.vinylContainer} pointerEvents="none">
+              <View style={[styles.vinylOuter, { borderColor: suggestion.accentColor + '55' }]}>
+                <View style={[styles.vinylInner, { borderColor: suggestion.accentColor + '35' }]}>
+                  <View style={[styles.vinylCenter, { backgroundColor: suggestion.accentColor + '80' }]} />
+                </View>
+              </View>
+            </View>
+
+            {/* Category label */}
+            <View style={styles.cardTextContainer}>
+              <OTOText variant="track" weight="bold" customColor={color.text.primary}>
+                {suggestion.label}
+              </OTOText>
+            </View>
           </Pressable>
         ))}
       </View>
@@ -91,26 +108,57 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: space[3],
   },
-  chip: {
-    width: '47%',
-    height: 72,
+  card: {
+    width: '47.5%',
+    height: 84,
     borderRadius: radius.md,
-    justifyContent: 'flex-end',
     padding: space[3],
+    justifyContent: 'space-between',
     overflow: 'hidden',
-    minHeight: 44,
+    borderWidth: 1,
+    backgroundColor: color.bg.s2,
+    position: 'relative',
   },
-  chipAccent: {
+  cardPressed: {
+    opacity: 0.88,
+    transform: [{ scale: 0.98 }],
+  },
+  topHighlight: {
     position: 'absolute',
     top: 0,
+    left: 0,
     right: 0,
-    width: 48,
-    height: 48,
-    borderRadius: radius.full,
-    transform: [{ translateX: 12 }, { translateY: -12 }],
-    opacity: 0.6,
+    height: 1.5,
   },
-  chipPressed: {
-    opacity: 0.75,
+  vinylContainer: {
+    position: 'absolute',
+    right: -10,
+    bottom: -10,
+    width: 60,
+    height: 60,
+  },
+  vinylOuter: {
+    width: 60,
+    height: 60,
+    borderRadius: radius.full,
+    borderWidth: 1.5,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  vinylInner: {
+    width: 36,
+    height: 36,
+    borderRadius: radius.full,
+    borderWidth: 1.5,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  vinylCenter: {
+    width: 10,
+    height: 10,
+    borderRadius: radius.full,
+  },
+  cardTextContainer: {
+    zIndex: 1,
   },
 });

@@ -29,6 +29,7 @@ import { OTOText } from '@/design/components/OTOText';
 import { OTOGlassSurface } from '@/design/components/OTOGlassSurface';
 import { OTOIconButton } from '@/design/components/OTOIconButton';
 import { OTOArtwork } from '@/design/components/OTOArtwork';
+import { ShuffleIcon, ChevronDownIcon } from '@/design/components/OTOIcon';
 import { usePalette } from '@/design/context/PaletteContext';
 import { OTOQueueItem } from './OTOQueueItem';
 
@@ -48,49 +49,6 @@ interface UndoItemState {
   item: QueueItem;
   tier: QueueTier;
   index: number;
-}
-
-function ShuffleQueueIcon({ active, color: iconColor = color.text.primary }: { active: boolean; color?: string }) {
-  return (
-    <View style={{ width: 18, height: 18, justifyContent: 'center', alignItems: 'center' }}>
-      <View
-        style={{
-          width: 14,
-          height: 2,
-          backgroundColor: active ? color.accent.signature : iconColor,
-          transform: [{ rotate: '35deg' }],
-          borderRadius: 1,
-        }}
-      />
-      <View
-        style={{
-          width: 14,
-          height: 2,
-          backgroundColor: active ? color.accent.signature : iconColor,
-          transform: [{ rotate: '-35deg' }],
-          marginTop: -2,
-          borderRadius: 1,
-        }}
-      />
-    </View>
-  );
-}
-
-function ChevronDownIcon({ color: iconColor = color.text.primary }: { color?: string }) {
-  return (
-    <View style={{ width: 14, height: 8, justifyContent: 'center', alignItems: 'center' }}>
-      <View
-        style={{
-          width: 8,
-          height: 8,
-          borderBottomWidth: 2,
-          borderRightWidth: 2,
-          borderColor: iconColor,
-          transform: [{ rotate: '45deg' }],
-        }}
-      />
-    </View>
-  );
 }
 
 export function OTOQueue({ onClose, onTrackSelect }: OTOQueueProps) {
@@ -198,8 +156,9 @@ export function OTOQueue({ onClose, onTrackSelect }: OTOQueueProps) {
 
           <OTOIconButton
             icon={
-              <ShuffleQueueIcon
+              <ShuffleIcon
                 active={isShuffled}
+                size={18}
                 color={isShuffled ? activeColor : color.text.secondary}
               />
             }

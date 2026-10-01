@@ -25,6 +25,7 @@ import { QueueItem } from '@/domain/queue/types';
 import { color, radius, space } from '@/design/tokens';
 import { OTOText } from '@/design/components/OTOText';
 import { OTOArtwork } from '@/design/components/OTOArtwork';
+import { DragHandleIcon, TrashIcon } from '@/design/components/OTOIcon';
 import { usePalette } from '@/design/context/PaletteContext';
 
 export interface OTOQueueItemProps {
@@ -48,25 +49,6 @@ function PlayingWaveIndicator({ activeColor }: { activeColor: string }) {
       <View style={[styles.waveBar, { height: 8, backgroundColor: activeColor }]} />
       <View style={[styles.waveBar, { height: 16, backgroundColor: activeColor }]} />
       <View style={[styles.waveBar, { height: 11, backgroundColor: activeColor }]} />
-    </View>
-  );
-}
-
-function DragHandleIcon({ color: iconColor = color.text.tertiary }: { color?: string }) {
-  return (
-    <View style={styles.dragHandle}>
-      <View style={[styles.dragLine, { backgroundColor: iconColor }]} />
-      <View style={[styles.dragLine, { backgroundColor: iconColor }]} />
-      <View style={[styles.dragLine, { backgroundColor: iconColor }]} />
-    </View>
-  );
-}
-
-function TrashIcon({ color: iconColor = color.text.tertiary }: { color?: string }) {
-  return (
-    <View style={styles.trashIconContainer}>
-      <View style={[styles.trashLid, { backgroundColor: iconColor }]} />
-      <View style={[styles.trashBody, { borderColor: iconColor }]} />
     </View>
   );
 }
@@ -305,33 +287,5 @@ const styles = StyleSheet.create({
     height: 44,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  dragHandle: {
-    width: 18,
-    height: 12,
-    justifyContent: 'space-between',
-  },
-  dragLine: {
-    height: 2,
-    borderRadius: 1,
-  },
-  trashIconContainer: {
-    width: 14,
-    height: 16,
-    alignItems: 'center',
-  },
-  trashLid: {
-    width: 14,
-    height: 2,
-    borderRadius: 1,
-    marginBottom: 2,
-  },
-  trashBody: {
-    width: 10,
-    height: 11,
-    borderWidth: 1.5,
-    borderTopWidth: 0,
-    borderBottomLeftRadius: 2,
-    borderBottomRightRadius: 2,
   },
 });

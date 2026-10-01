@@ -10,6 +10,7 @@ import Animated, {
   interpolate,
   type SharedValue,
   runOnJS,
+  SlideInDown,
 } from 'react-native-reanimated';
 import { GestureDetector, Gesture } from 'react-native-gesture-handler';
 import * as Haptics from 'expo-haptics';
@@ -18,6 +19,7 @@ import { OTOGlassSurface } from '@/design/components/OTOGlassSurface';
 import { OTOText } from '@/design/components/OTOText';
 import { OTOArtwork } from '@/design/components/OTOArtwork';
 import { OTOIconButton } from '@/design/components/OTOIconButton';
+import { PlayIcon, PauseIcon } from '@/design/components/OTOIcon';
 import { usePlaybackStore } from '@/store/usePlaybackStore';
 import { useAudioEngine } from '@/audio/AudioContext';
 import { usePlayheadProgress } from '@/audio/usePlayheadProgress';
@@ -26,33 +28,6 @@ export interface OTOMiniPlayerProps {
   playerProgress: SharedValue<number>;
   onExpand: () => void;
   tabBarHeight?: number;
-}
-
-function PlayIcon({ color: iconColor = color.text.primary, size = 14 }: { color?: string; size?: number }) {
-  return (
-    <View
-      style={{
-        width: 0,
-        height: 0,
-        borderLeftWidth: size,
-        borderTopWidth: size * 0.6,
-        borderBottomWidth: size * 0.6,
-        borderLeftColor: iconColor,
-        borderTopColor: 'transparent',
-        borderBottomColor: 'transparent',
-        marginLeft: 2,
-      }}
-    />
-  );
-}
-
-function PauseIcon({ color: iconColor = color.text.primary, size = 14 }: { color?: string; size?: number }) {
-  return (
-    <View style={{ flexDirection: 'row', gap: size * 0.35 }}>
-      <View style={{ width: size * 0.3, height: size * 1.1, backgroundColor: iconColor, borderRadius: 1.5 }} />
-      <View style={{ width: size * 0.3, height: size * 1.1, backgroundColor: iconColor, borderRadius: 1.5 }} />
-    </View>
-  );
 }
 
 /**
@@ -124,12 +99,13 @@ export function OTOMiniPlayer({
     return {
       opacity,
       transform: [{ translateY }],
+      pointerEvents: playerProgress.value > 0.15 ? 'none' : 'auto',
     };
   });
 
   const progressBarAnimatedStyle = useAnimatedStyle(() => {
     return {
-      width: `${Math.max(0, Math.min(100, progress.value * 100))}%`,
+      transform: [{ scaleX: Math.max(0, Math.min(1, progress.value)) }],
     };
   });
 
@@ -141,12 +117,12 @@ export function OTOMiniPlayer({
 
   return (
     <Animated.View
+      entering={SlideInDown.duration(420).springify().damping(22)}
       style={[
         styles.positionWrapper,
         { bottom: tabBarHeight + space[2] },
         containerAnimatedStyle,
       ]}
-      pointerEvents={playerProgress.value > 0.15 ? 'none' : 'auto'}
     >
       <GestureDetector gesture={composedGesture}>
         <Pressable
@@ -231,8 +207,10 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   progressFill: {
+    width: '100%',
     height: '100%',
     backgroundColor: color.accent.signature,
+    transformOrigin: 'left',
   },
   contentRow: {
     flexDirection: 'row',

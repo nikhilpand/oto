@@ -9,21 +9,13 @@ import React from 'react';
 import { View, StyleSheet, Pressable } from 'react-native';
 import { color, space, radius } from '@/design/tokens';
 import { OTOText } from '@/design/components/OTOText';
+import { CloudOfflineIcon } from '@/design/components/OTOIcon';
 
 export interface OfflineBannerProps {
   isOffline: boolean;
   onRetry?: () => void;
   cachedOnlyActive?: boolean;
   onToggleCachedOnly?: () => void;
-}
-
-function CloudOfflineIcon({ color: iconColor = color.semantic.warning }: { color?: string }) {
-  return (
-    <View style={styles.cloudWrapper}>
-      <View style={[styles.cloudBody, { borderColor: iconColor }]} />
-      <View style={[styles.slashLine, { backgroundColor: iconColor }]} />
-    </View>
-  );
 }
 
 export function OfflineBanner({

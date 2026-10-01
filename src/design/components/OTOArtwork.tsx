@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import { Image, ImageProps } from 'expo-image';
 import { color, radius } from '@/design/tokens';
-import { OTOText } from './OTOText';
+import { MusicNoteIcon } from './OTOIcon';
 
 export interface OTOArtworkProps extends Omit<ImageProps, 'source' | 'style'> {
   uri?: string | null;
@@ -52,9 +52,7 @@ export function OTOArtwork({
         accessibilityLabel={alt}
         style={[containerStyle, styles.fallbackContainer, style]}
       >
-        <OTOText variant="caption" colorRole="tertiary" weight="medium">
-          ♪
-        </OTOText>
+        <MusicNoteIcon size={Math.min(22, (size ?? 48) * 0.45)} color={color.text.tertiary} />
       </View>
     );
   }
@@ -75,8 +73,12 @@ export function OTOArtwork({
         cachePolicy="memory-disk"
         accessibilityLabel={alt}
         accessibilityRole="image"
-        onLoadStart={() => setIsLoading(true)}
-        onLoad={() => setIsLoading(false)}
+        onLoadStart={() => {
+          setIsLoading(true);
+        }}
+        onLoad={() => {
+          setIsLoading(false);
+        }}
         onError={() => {
           setIsLoading(false);
           setHasError(true);

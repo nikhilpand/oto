@@ -1,16 +1,13 @@
 import { Tabs } from 'expo-router';
 import { StyleSheet } from 'react-native';
 import { color, space } from '@/design/tokens';
+import { HomeIcon, SearchIcon, LibraryIcon } from '@/design/components/OTOIcon';
 
 /**
  * Tab layout — Home, Search, Library.
  *
- * Uses Expo Router's native tabs engine (no @react-navigation imports).
- * Tab bar is styled to match OTO's dark-first design with glass-ready
- * structure (solid fallback for now, glass surface applied in P2).
- *
- * Icons are placeholder text for P0 — replaced with proper SF Symbols /
- * Material Icons in P1.
+ * Uses Expo Router's native tabs engine with dark-first styling,
+ * solid glass-ready fallback, and pure-vector geometric icons.
  */
 export default function TabLayout() {
   return (
@@ -28,6 +25,9 @@ export default function TabLayout() {
         options={{
           title: 'Home',
           tabBarAccessibilityLabel: 'Home tab',
+          tabBarIcon: ({ color, focused }) => (
+            <HomeIcon size={22} color={color} focused={focused} />
+          ),
         }}
       />
       <Tabs.Screen
@@ -35,6 +35,9 @@ export default function TabLayout() {
         options={{
           title: 'Search',
           tabBarAccessibilityLabel: 'Search tab',
+          tabBarIcon: ({ color, focused }) => (
+            <SearchIcon size={22} color={color} focused={focused} />
+          ),
         }}
       />
       <Tabs.Screen
@@ -42,6 +45,9 @@ export default function TabLayout() {
         options={{
           title: 'Library',
           tabBarAccessibilityLabel: 'Library tab',
+          tabBarIcon: ({ color, focused }) => (
+            <LibraryIcon size={22} color={color} focused={focused} />
+          ),
         }}
       />
     </Tabs>

@@ -7,6 +7,7 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 import { color, radius, space } from '@/design/tokens';
 import { OTOText } from '@/design/components/OTOText';
+import { ListIcon, GridIcon } from '@/design/components/OTOIcon';
 import type { LibrarySortOrder, LibraryViewMode } from '../types';
 
 interface Props {
@@ -56,7 +57,7 @@ export function LibraryToolbar({ sortOrder, viewMode, onSortChange, onViewModeCh
           accessibilityState={{ checked: viewMode === 'list' }}
           accessibilityLabel="List view"
         >
-          <OTOText variant="body" customColor={viewMode === 'list' ? color.accent.signatureLight : color.text.tertiary}>☰</OTOText>
+          <ListIcon size={16} color={viewMode === 'list' ? color.accent.signatureLight : color.text.tertiary} />
         </Pressable>
         <Pressable
           onPress={() => onViewModeChange('grid')}
@@ -65,7 +66,7 @@ export function LibraryToolbar({ sortOrder, viewMode, onSortChange, onViewModeCh
           accessibilityState={{ checked: viewMode === 'grid' }}
           accessibilityLabel="Grid view"
         >
-          <OTOText variant="body" customColor={viewMode === 'grid' ? color.accent.signatureLight : color.text.tertiary}>⊞</OTOText>
+          <GridIcon size={16} color={viewMode === 'grid' ? color.accent.signatureLight : color.text.tertiary} />
         </Pressable>
       </View>
     </View>

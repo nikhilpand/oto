@@ -115,6 +115,7 @@ export function PlayerOverlay({
     // Visible only during transition (0.02 to 0.98)
     // When fully collapsed (0), mini player displays artwork.
     // When fully expanded (1), now playing container displays artwork with pause-scale.
+    const isTransitioning = playerProgress.value > 0.01 && playerProgress.value < 0.99;
     const opacity = interpolate(playerProgress.value, [0, 0.04, 0.96, 1], [0, 1, 1, 0]);
 
     return {
@@ -126,6 +127,7 @@ export function PlayerOverlay({
       borderRadius,
       opacity,
       zIndex: 250,
+      display: isTransitioning ? 'flex' : 'none',
     };
   });
 

@@ -10,40 +10,13 @@ import { View, StyleSheet, Pressable, Platform } from 'react-native';
 import { color, space, radius, touchTarget } from '@/design/tokens';
 import { OTOText } from '@/design/components/OTOText';
 import { OTOIconButton } from '@/design/components/OTOIconButton';
+import { SearchIcon, LibraryIcon } from '@/design/components/OTOIcon';
 
 export interface HomeHeaderProps {
   greeting: string;
   onSearchPress: () => void;
   onProfilePress?: () => void;
   onStorybookToggle?: () => void;
-}
-
-function SearchIcon({ color: iconColor = color.text.secondary }: { color?: string }) {
-  return (
-    <View style={styles.searchIconWrapper}>
-      <View
-        style={[
-          styles.searchIconCircle,
-          { borderColor: iconColor },
-        ]}
-      />
-      <View
-        style={[
-          styles.searchIconHandle,
-          { backgroundColor: iconColor },
-        ]}
-      />
-    </View>
-  );
-}
-
-function BookIcon({ color: iconColor = color.text.tertiary }: { color?: string }) {
-  return (
-    <View style={styles.bookIconWrapper}>
-      <View style={[styles.bookSpine, { backgroundColor: iconColor }]} />
-      <View style={[styles.bookCover, { borderColor: iconColor }]} />
-    </View>
-  );
 }
 
 export function HomeHeader({
@@ -72,7 +45,7 @@ export function HomeHeader({
         <View style={styles.actionsContainer}>
           {onStorybookToggle && (
             <OTOIconButton
-              icon={<BookIcon />}
+              icon={<LibraryIcon size={20} color={color.text.secondary} />}
               accessibilityLabel="Open Storybook developer catalog"
               accessibilityHint="Switches to Storybook component view"
               onPress={onStorybookToggle}
@@ -85,30 +58,44 @@ export function HomeHeader({
             accessibilityRole="button"
             accessibilityLabel="User profile settings"
             onPress={onProfilePress}
-            style={[styles.avatarButton, { minWidth: minTouch, minHeight: minTouch }]}
+            style={({ pressed }) => [
+              styles.avatarButton,
+              { minWidth: minTouch, minHeight: minTouch },
+              pressed && styles.avatarPressed,
+            ]}
           >
             <View style={styles.avatar}>
-              <OTOText variant="caption" weight="bold" colorRole="primary">
-                O
-              </OTOText>
+              <View style={styles.avatarInner}>
+                <OTOText variant="caption" weight="bold" style={styles.avatarText}>
+                  O
+                </OTOText>
+              </View>
             </View>
           </Pressable>
         </View>
       </View>
 
-      {/* Instant Search Entry Trigger Pill */}
+      {/* Instant Search Entry Trigger Pill with Glass Specular Rim */}
       <Pressable
         accessible
         accessibilityRole="search"
         accessibilityLabel="Search music catalog, artists, and songs"
         accessibilityHint="Opens search screen"
         onPress={onSearchPress}
-        style={styles.searchPill}
+        style={({ pressed }) => [
+          styles.searchPill,
+          pressed && styles.searchPillPressed,
+        ]}
       >
-        <SearchIcon color={color.text.secondary} />
+        <SearchIcon size={18} color={color.text.secondary} />
         <OTOText variant="body" colorRole="tertiary" style={styles.searchText}>
           What do you want to play?
         </OTOText>
+        <View style={styles.searchShortcutBadge}>
+          <OTOText variant="meta" colorRole="tertiary" style={styles.searchShortcutText}>
+            Search
+          </OTOText>
+        </View>
       </Pressable>
     </View>
   );
@@ -139,15 +126,38 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  avatarPressed: {
+    opacity: 0.85,
+    transform: [{ scale: 0.95 }],
+  },
   avatar: {
-    width: 36,
-    height: 36,
+    width: 38,
+    height: 38,
     borderRadius: radius.full,
     backgroundColor: color.bg.s3,
     borderWidth: 1.5,
-    borderColor: color.hairline,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+    borderTopColor: 'rgba(255, 255, 255, 0.32)',
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: color.accent.signature,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  avatarInner: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: 'rgba(229, 169, 60, 0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarText: {
+    color: color.accent.signature,
+    fontSize: 13,
+    fontWeight: '700',
   },
   searchPill: {
     height: 48,
@@ -155,57 +165,33 @@ const styles = StyleSheet.create({
     backgroundColor: color.bg.s2,
     borderWidth: 1,
     borderColor: color.hairline,
+    borderTopColor: color.glass.highlight,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: space[3],
     gap: space[2],
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  searchPillPressed: {
+    opacity: 0.88,
+    transform: [{ scale: 0.99 }],
   },
   searchText: {
     flex: 1,
   },
-  searchIconWrapper: {
-    width: 18,
-    height: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
+  searchShortcutBadge: {
+    backgroundColor: color.bg.s3,
+    paddingHorizontal: space[2],
+    paddingVertical: 3,
+    borderRadius: radius.full,
+    borderWidth: 1,
+    borderColor: color.hairline,
   },
-  searchIconCircle: {
-    width: 11,
-    height: 11,
-    borderRadius: 5.5,
-    borderWidth: 1.8,
-    position: 'absolute',
-    top: 1,
-    left: 1,
-  },
-  searchIconHandle: {
-    width: 6,
-    height: 1.8,
-    position: 'absolute',
-    bottom: 2,
-    right: 1,
-    transform: [{ rotate: '45deg' }],
-    borderRadius: 1,
-  },
-  bookIconWrapper: {
-    width: 18,
-    height: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  bookSpine: {
-    width: 2,
-    height: 14,
-    borderRadius: 1,
-    position: 'absolute',
-    left: 2,
-  },
-  bookCover: {
-    width: 12,
-    height: 14,
-    borderWidth: 1.5,
-    borderRadius: 2,
-    position: 'absolute',
-    left: 4,
+  searchShortcutText: {
+    fontSize: 11,
   },
 });
