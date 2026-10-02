@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import {
   View,
   StyleSheet,
@@ -48,10 +48,34 @@ export function OTOMiniPlayer({
   const isPlaying = usePlaybackStore((s) => s.isPlaying);
   const engine = useAudioEngine();
 
+  // A11y: coarse progress percent (0–100) updated at ~4Hz from native ticks
+  // Not driven by the 120Hz frame loop — only updates when position meaningfully changes.
+  const [a11yPercent, setA11yPercent] = useState(0);
+  const lastReportedPercent = useRef(0);
+
   const { progress } = usePlayheadProgress(
     engine,
     currentTrack?.durationMs ?? 0
   );
+
+  // Update a11y percent only when it changes by ≥1% to avoid spurious re-renders
+  const updateA11yPercent = useCallback((pct: number) => {
+    const rounded = Math.round(pct);
+    if (Math.abs(rounded - lastReportedPercent.current) >= 1) {
+      lastReportedPercent.current = rounded;
+      setA11yPercent(rounded);
+    }
+  }, []);
+
+  // Subscribe to the engine position ticks (same ~4Hz feed as the calibration)
+  React.useEffect(() => {
+    if (!currentTrack?.durationMs) return;
+    const dur = currentTrack.durationMs;
+    const unsub = engine.onPositionTick((posMs: number) => {
+      updateA11yPercent((posMs / dur) * 100);
+    });
+    return () => { unsub(); };
+  }, [engine, currentTrack, updateA11yPercent]);
 
   const handleTogglePlay = useCallback(() => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -134,7 +158,13 @@ export function OTOMiniPlayer({
         >
           <OTOGlassSurface borderRadius={radius.md} style={styles.glassContainer}>
             {/* Top edge 120Hz progress line */}
-            <View style={styles.progressTrack}>
+            <View
+              style={styles.progressTrack}
+              accessible
+              accessibilityRole="progressbar"
+              accessibilityLabel={`Playback progress: ${a11yPercent}%`}
+              accessibilityValue={{ min: 0, max: 100, now: a11yPercent }}
+            >
               <Animated.View style={[styles.progressFill, progressBarAnimatedStyle]} />
             </View>
 

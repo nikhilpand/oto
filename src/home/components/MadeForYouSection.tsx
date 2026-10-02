@@ -8,7 +8,8 @@
 import React, { useCallback } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import Animated, { FadeInDown, useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
-import { space, radius } from '@/design/tokens';
+import { space, radius, spring } from '@/design/tokens';
+import { useReducedMotion } from '@/design/hooks/useReducedMotion';
 import { OTOText } from '@/design/components/OTOText';
 import { OTOArtwork } from '@/design/components/OTOArtwork';
 import { MadeForYouItem } from '../types';
@@ -24,10 +25,11 @@ export function MadeForYouSection({
 }: MadeForYouSectionProps): React.JSX.Element | null {
   if (!items || items.length === 0) return null;
 
+
   return (
     <View style={styles.container}>
       <View style={styles.sectionHeader}>
-        <OTOText variant="title" weight="bold">
+        <OTOText variant="title" weight="bold" accessibilityRole="header">
           Made For You
         </OTOText>
         <OTOText variant="caption" colorRole="secondary">
@@ -57,6 +59,7 @@ function MadeForYouCard({
   index: number;
   onSelect: (item: MadeForYouItem) => void;
 }): React.JSX.Element {
+  const reducedMotion = useReducedMotion();
   const scale = useSharedValue(1);
 
   const cardStyle = useAnimatedStyle(() => ({
@@ -64,16 +67,16 @@ function MadeForYouCard({
   }));
 
   const handlePressIn = useCallback(() => {
-    scale.value = withSpring(0.97, { damping: 18, stiffness: 380 });
-  }, [scale]);
+    if (!reducedMotion) scale.value = withSpring(0.97, spring.spatial.fast);
+  }, [scale, reducedMotion]);
 
   const handlePressOut = useCallback(() => {
-    scale.value = withSpring(1, { damping: 18, stiffness: 380 });
-  }, [scale]);
+    if (!reducedMotion) scale.value = withSpring(1, spring.spatial.fast);
+  }, [scale, reducedMotion]);
 
   return (
     <Animated.View
-      entering={FadeInDown.delay(index * 60).duration(400).springify()}
+      entering={reducedMotion ? undefined : FadeInDown.delay(index * 60).duration(400).springify()}
       style={[styles.card, cardStyle]}
     >
       <Animated.View

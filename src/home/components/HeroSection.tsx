@@ -15,7 +15,8 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
-import { color, space, radius } from '@/design/tokens';
+import { color, space, radius, spring } from '@/design/tokens';
+import { useReducedMotion } from '@/design/hooks/useReducedMotion';
 import { OTOText } from '@/design/components/OTOText';
 import { OTOButton } from '@/design/components/OTOButton';
 import { OTOArtwork } from '@/design/components/OTOArtwork';
@@ -38,6 +39,7 @@ export function HeroSection({
   const accentColor = activePalette.accent || activePalette.secondary || color.accent.signature;
   const dominantColor = activePalette.dominant || color.bg.base;
 
+  const reducedMotion = useReducedMotion();
   const scale = useSharedValue(1);
 
   const cardAnimatedStyle = useAnimatedStyle(() => ({
@@ -45,16 +47,16 @@ export function HeroSection({
   }));
 
   const handlePressIn = useCallback(() => {
-    scale.value = withSpring(0.975, { damping: 20, stiffness: 400 });
-  }, [scale]);
+    if (!reducedMotion) scale.value = withSpring(0.975, spring.spatial.fast);
+  }, [scale, reducedMotion]);
 
   const handlePressOut = useCallback(() => {
-    scale.value = withSpring(1, { damping: 20, stiffness: 400 });
-  }, [scale]);
+    if (!reducedMotion) scale.value = withSpring(1, spring.spatial.fast);
+  }, [scale, reducedMotion]);
 
   return (
     <Animated.View
-      entering={FadeInDown.delay(80).duration(500).springify()}
+      entering={reducedMotion ? undefined : FadeInDown.delay(80).duration(500).springify()}
       style={styles.container}
     >
       <Pressable

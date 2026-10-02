@@ -9,7 +9,8 @@ import React from 'react';
 import { View, StyleSheet, Platform } from 'react-native';
 import Animated, { FadeInLeft, useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import { Pressable } from 'react-native';
-import { color, space, radius, touchTarget } from '@/design/tokens';
+import { color, space, radius, touchTarget, spring } from '@/design/tokens';
+import { useReducedMotion } from '@/design/hooks/useReducedMotion';
 import { OTOText } from '@/design/components/OTOText';
 import { OTOArtwork } from '@/design/components/OTOArtwork';
 import { PlayIcon } from '@/design/components/OTOIcon';
@@ -34,7 +35,7 @@ export function QuickPicksSection({
   return (
     <View style={styles.container}>
       <View style={styles.sectionHeader}>
-        <OTOText variant="title" weight="bold">
+        <OTOText variant="title" weight="bold" accessibilityRole="header">
           Quick Picks
         </OTOText>
         <OTOText variant="caption" colorRole="secondary">
@@ -68,12 +69,13 @@ function QuickPickRow({
   minHeight: number;
   onPlayTrack: (track: Track) => void;
 }): React.JSX.Element {
+  const reducedMotion = useReducedMotion();
   const scale = useSharedValue(1);
   const rowStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
 
   return (
     <Animated.View
-      entering={FadeInLeft.delay(index * 40).duration(350).springify()}
+      entering={reducedMotion ? undefined : FadeInLeft.delay(index * 40).duration(350).springify()}
       style={rowStyle}
     >
       <Pressable
@@ -81,8 +83,8 @@ function QuickPickRow({
         accessibilityRole="button"
         accessibilityLabel={`Play ${track.title} by ${track.artist}`}
         onPress={() => onPlayTrack(track)}
-        onPressIn={() => { scale.value = withSpring(0.97, { damping: 18, stiffness: 380 }); }}
-        onPressOut={() => { scale.value = withSpring(1, { damping: 18, stiffness: 380 }); }}
+        onPressIn={() => { if (!reducedMotion) scale.value = withSpring(0.97, spring.spatial.fast); }}
+        onPressOut={() => { if (!reducedMotion) scale.value = withSpring(1, spring.spatial.fast); }}
         style={[styles.row, { minHeight }]}
       >
         <View style={styles.rankContainer}>

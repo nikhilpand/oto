@@ -9,7 +9,8 @@ import React, { useCallback } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import Animated, { FadeInRight, useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import { Pressable } from 'react-native';
-import { color, space, radius } from '@/design/tokens';
+import { color, space, radius, spring } from '@/design/tokens';
+import { useReducedMotion } from '@/design/hooks/useReducedMotion';
 import { OTOText } from '@/design/components/OTOText';
 import { OTOArtwork } from '@/design/components/OTOArtwork';
 import { PlayIcon } from '@/design/components/OTOIcon';
@@ -29,7 +30,7 @@ export function ContinueListeningSection({
   return (
     <View style={styles.container}>
       <View style={styles.sectionHeader}>
-        <OTOText variant="title" weight="bold">
+        <OTOText variant="title" weight="bold" accessibilityRole="header">
           Continue Listening
         </OTOText>
       </View>
@@ -56,20 +57,21 @@ function ContinueListeningCard({
   index: number;
   onResume: (item: ContinueListeningItem) => void;
 }): React.JSX.Element {
+  const reducedMotion = useReducedMotion();
   const scale = useSharedValue(1);
   const cardStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
 
   const handlePressIn = useCallback(() => {
-    scale.value = withSpring(0.97, { damping: 18, stiffness: 380 });
-  }, [scale]);
+    if (!reducedMotion) scale.value = withSpring(0.97, spring.spatial.fast);
+  }, [scale, reducedMotion]);
 
   const handlePressOut = useCallback(() => {
-    scale.value = withSpring(1, { damping: 18, stiffness: 380 });
-  }, [scale]);
+    if (!reducedMotion) scale.value = withSpring(1, spring.spatial.fast);
+  }, [scale, reducedMotion]);
 
   return (
     <Animated.View
-      entering={FadeInRight.delay(index * 60).duration(380).springify()}
+      entering={reducedMotion ? undefined : FadeInRight.delay(index * 60).duration(380).springify()}
       style={cardStyle}
     >
       <Pressable
