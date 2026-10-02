@@ -43,3 +43,8 @@ yarn-error.*
 
 # temp artifacts / media
 media_*.png
+.temp*
+*.temp
+.current_device.png
+*.db
+*.db-journal

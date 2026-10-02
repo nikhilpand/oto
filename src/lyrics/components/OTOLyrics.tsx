@@ -55,6 +55,7 @@ export const OTOLyrics = memo(function OTOLyrics({
 
   const scrollRef = useRef<Animated.ScrollView>(null);
   const scrollIdleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hasInitiallyScrolled = useRef(false);
 
   // Line offsets pre-measured to avoid layout thrashing during playback
   const lineOffsets = useRef<number[]>([]);
@@ -64,6 +65,21 @@ export const OTOLyrics = memo(function OTOLyrics({
   const resumePillOpacity = useSharedValue(0);
 
   const lines: LyricLine[] = lyrics?.lines ?? [];
+
+  // Reset initial scroll flag and pre-measured offsets when lyrics change
+  useEffect(() => {
+    hasInitiallyScrolled.current = false;
+    lineOffsets.current = [];
+  }, [lyrics]);
+
+  // Clean up idle timer on unmount
+  useEffect(() => {
+    return () => {
+      if (scrollIdleTimer.current) {
+        clearTimeout(scrollIdleTimer.current);
+      }
+    };
+  }, []);
 
   // Discrete line-change detection driven on UI thread
   useAnimatedReaction(
@@ -92,21 +108,42 @@ export const OTOLyrics = memo(function OTOLyrics({
     [lines]
   );
 
-  // Auto-scroll to current line if user is not actively dragging
+  const scrollToActiveLine = useCallback(
+    (index: number, animated = true) => {
+      if (mode === 'inline') return;
+      const targetY = lineOffsets.current[index];
+      if (targetY !== undefined && scrollRef.current) {
+        const anchorOffset = containerHeight.current * VIEWPORT_ANCHOR_RATIO;
+        const scrollY = Math.max(0, targetY - anchorOffset);
+
+        scrollRef.current.scrollTo({
+          y: scrollY,
+          animated: animated && !reducedMotion,
+        });
+      }
+    },
+    [mode, reducedMotion]
+  );
+
+  // Auto-scroll to current line if user is not actively dragging or in momentum
   useEffect(() => {
     if (isUserScrolling || lines.length === 0 || mode === 'inline') return;
 
-    const targetY = lineOffsets.current[activeIndex];
-    if (targetY !== undefined && scrollRef.current) {
-      const anchorOffset = containerHeight.current * VIEWPORT_ANCHOR_RATIO;
-      const scrollY = Math.max(0, targetY - anchorOffset);
-
-      scrollRef.current.scrollTo({
-        y: scrollY,
-        animated: !reducedMotion,
-      });
+    if (lineOffsets.current[activeIndex] !== undefined) {
+      hasInitiallyScrolled.current = true;
+      scrollToActiveLine(activeIndex, true);
     }
-  }, [activeIndex, isUserScrolling, lines.length, mode, reducedMotion]);
+  }, [activeIndex, isUserScrolling, lines.length, mode, scrollToActiveLine]);
+
+  const startIdleTimer = useCallback(() => {
+    if (scrollIdleTimer.current) {
+      clearTimeout(scrollIdleTimer.current);
+    }
+    scrollIdleTimer.current = setTimeout(() => {
+      resumePillOpacity.value = withTiming(0, { duration: 250 });
+      setIsUserScrolling(false);
+    }, 4500);
+  }, [resumePillOpacity]);
 
   // Handle manual scroll drag start: pause auto-follow & show Resume pill
   const handleScrollBeginDrag = useCallback(() => {
@@ -118,16 +155,23 @@ export const OTOLyrics = memo(function OTOLyrics({
     }
   }, [resumePillOpacity]);
 
-  // Handle manual scroll end: start a 4.5-second timeout to auto-resume sync
+  // Handle manual scroll drag release
   const handleScrollEndDrag = useCallback(() => {
+    startIdleTimer();
+  }, [startIdleTimer]);
+
+  // Handle momentum deceleration: hold isUserScrolling and pause timer
+  const handleMomentumScrollBegin = useCallback(() => {
+    setIsUserScrolling(true);
     if (scrollIdleTimer.current) {
       clearTimeout(scrollIdleTimer.current);
     }
-    scrollIdleTimer.current = setTimeout(() => {
-      resumePillOpacity.value = withTiming(0, { duration: 250 });
-      setIsUserScrolling(false);
-    }, 4500);
-  }, [resumePillOpacity]);
+  }, []);
+
+  // Handle momentum end: begin 4.5s idle countdown to resume auto-scroll
+  const handleMomentumScrollEnd = useCallback(() => {
+    startIdleTimer();
+  }, [startIdleTimer]);
 
   // Tapping Resume pill
   const handleResumeSync = useCallback(() => {
@@ -139,22 +183,22 @@ export const OTOLyrics = memo(function OTOLyrics({
       clearTimeout(scrollIdleTimer.current);
     }
 
-    const targetY = lineOffsets.current[activeIndex];
-    if (targetY !== undefined && scrollRef.current) {
-      const anchorOffset = containerHeight.current * VIEWPORT_ANCHOR_RATIO;
-      const scrollY = Math.max(0, targetY - anchorOffset);
-      scrollRef.current.scrollTo({
-        y: scrollY,
-        animated: !reducedMotion,
-      });
-    }
-  }, [activeIndex, reducedMotion, resumePillOpacity]);
+    scrollToActiveLine(activeIndex, true);
+  }, [activeIndex, resumePillOpacity, scrollToActiveLine]);
 
-  // Pre-measure line layout once on load
-  const handleLineLayout = useCallback((index: number, event: LayoutChangeEvent) => {
-    const { y } = event.nativeEvent.layout;
-    lineOffsets.current[index] = y;
-  }, []);
+  // Pre-measure line layout once on load & trigger initial jump if mid-track
+  const handleLineLayout = useCallback(
+    (index: number, event: LayoutChangeEvent) => {
+      const { y } = event.nativeEvent.layout;
+      lineOffsets.current[index] = y;
+
+      if (!hasInitiallyScrolled.current && index === activeIndex && !isUserScrolling) {
+        hasInitiallyScrolled.current = true;
+        scrollToActiveLine(index, false);
+      }
+    },
+    [activeIndex, isUserScrolling, scrollToActiveLine]
+  );
 
   const handleContainerLayout = useCallback((event: LayoutChangeEvent) => {
     containerHeight.current = event.nativeEvent.layout.height;
@@ -264,6 +308,8 @@ export const OTOLyrics = memo(function OTOLyrics({
         contentContainerStyle={styles.scrollContent}
         onScrollBeginDrag={handleScrollBeginDrag}
         onScrollEndDrag={handleScrollEndDrag}
+        onMomentumScrollBegin={handleMomentumScrollBegin}
+        onMomentumScrollEnd={handleMomentumScrollEnd}
         scrollEventThrottle={16}
       >
         {lines.map((line, index) => (
@@ -274,7 +320,8 @@ export const OTOLyrics = memo(function OTOLyrics({
             <OTOLyricLine
               line={line}
               index={index}
-              activeIndex={activeIndex}
+              isActive={index === activeIndex}
+              isNearby={Math.abs(index - activeIndex) === 1}
               positionMs={positionMs}
               onSeek={onSeek}
               activeColor={activePalette.dominant || color.accent.signature}

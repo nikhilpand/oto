@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   View,
   StyleSheet,
@@ -10,7 +10,6 @@ import Animated, {
   interpolate,
   type SharedValue,
   runOnJS,
-  SlideInDown,
   withSpring,
   useSharedValue,
 } from 'react-native-reanimated';
@@ -108,25 +107,33 @@ export function OTOMiniPlayer({
     transform: [{ scale: playScale.value }],
   }));
 
-  // Gestures: horizontal swipe skips track, vertical swipe up or tap expands
-  const panGesture = Gesture.Pan()
-    .onEnd((event) => {
+  // Gestures: horizontal swipe skips track, vertical swipe up expands, tap expands
+  const tapGesture = useMemo(() => {
+    return Gesture.Tap().onEnd(() => {
       'worklet';
-      if (event.translationY < -30) {
-        runOnJS(onExpand)();
-      } else if (event.translationX < -50) {
-        runOnJS(handleSkipNext)();
-      } else if (event.translationX > 50) {
-        runOnJS(handleSkipPrev)();
-      }
+      runOnJS(onExpand)();
     });
+  }, [onExpand]);
 
-  const tapGesture = Gesture.Tap().onEnd(() => {
-    'worklet';
-    runOnJS(onExpand)();
-  });
+  const panGesture = useMemo(() => {
+    return Gesture.Pan()
+      .activeOffsetX([-30, 30])
+      .activeOffsetY([-20, 20])
+      .onEnd((event) => {
+        'worklet';
+        if (event.translationY < -25) {
+          runOnJS(onExpand)();
+        } else if (event.translationX < -45) {
+          runOnJS(handleSkipNext)();
+        } else if (event.translationX > 45) {
+          runOnJS(handleSkipPrev)();
+        }
+      });
+  }, [onExpand, handleSkipNext, handleSkipPrev]);
 
-  const composedGesture = Gesture.Race(panGesture, tapGesture);
+  const composedGesture = useMemo(() => {
+    return Gesture.Race(panGesture, tapGesture);
+  }, [panGesture, tapGesture]);
 
   // Pure UI-thread opacity and translation interpolations
   const containerAnimatedStyle = useAnimatedStyle(() => {
@@ -152,7 +159,6 @@ export function OTOMiniPlayer({
 
   return (
     <Animated.View
-      entering={SlideInDown.duration(420).springify().damping(22)}
       style={[
         styles.positionWrapper,
         { bottom: tabBarHeight + space[2] },
@@ -172,14 +178,19 @@ export function OTOMiniPlayer({
         </View>
 
         <View style={styles.contentRow}>
-          {/* Tap / swipe gesture on artwork & metadata to expand */}
+          {/* Swipe up to expand or swipe left/right to skip track, or tap to expand */}
           <GestureDetector gesture={composedGesture}>
-            <Pressable
+            <View
               accessible
               accessibilityRole="button"
               accessibilityLabel={accessibilityLabel}
               accessibilityHint="Expands the full-screen player"
-              onPress={onExpand}
+              accessibilityActions={[{ name: 'activate', label: 'Expand' }]}
+              onAccessibilityAction={(e) => {
+                if (e.nativeEvent.actionName === 'activate') {
+                  onExpand();
+                }
+              }}
               style={styles.expandArea}
             >
               {/* 44x44 Artwork with subtle shadow */}
@@ -211,7 +222,7 @@ export function OTOMiniPlayer({
                   {currentTrack.artist}
                 </OTOText>
               </View>
-            </Pressable>
+            </View>
           </GestureDetector>
 
           {/* Transport Controls — fully isolated from onExpand */}

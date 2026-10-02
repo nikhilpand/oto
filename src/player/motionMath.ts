@@ -43,7 +43,7 @@ export function calculateProgressFromTranslation(
 export function determineSnapTarget(
   currentProgress: number,
   velocityY: number,
-  flingThreshold = 1200
+  flingThreshold = 350
 ): 0 | 1 {
   'worklet';
   // Upward fling: snap to full player

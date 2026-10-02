@@ -14,25 +14,26 @@ import {
   StyleSheet,
   useWindowDimensions,
   View,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { FlashList } from '@shopify/flash-list';
-import { useAnimatedScrollHandler } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
-import { color, space } from '@/design/tokens';
+import { color, space, BOTTOM_CHROME_HEIGHT } from '@/design/tokens';
 import { useScrollOffset } from '@/design/context/ScrollOffsetContext';
 import { ScrollFadeEdge } from '@/design/components/ScrollFadeEdge';
 import { OTOText } from '@/design/components/OTOText';
-import { useAudioEngine } from '@/audio/AudioContext';
-import { useQueueStore } from '@/store/useQueueStore';
 import { LibraryFilterBar } from '../components/LibraryFilterBar';
 import { LikedSongsCard } from '../components/LikedSongsCard';
 import { LibraryItemRow } from '../components/LibraryItemRow';
 import { LibraryItemCard } from '../components/LibraryItemCard';
 import { LibraryToolbar } from '../components/LibraryToolbar';
 import { getLiveHomeFeed } from '@/api/otoBackend';
+import { useGoogleAuth } from '@/auth/useGoogleAuth';
+import { upgradeArtworkUrl } from '@/utils/imageQuality';
 import type { LibraryFilter, LibraryItem, LibrarySortOrder, LibraryViewMode, LikedSongsInfo } from '../types';
-import type { Track } from '@/domain/types';
 
 // ─── Utility ─────────────────────────────────────────────────────────
 
@@ -70,15 +71,16 @@ export function LibraryScreenContent() {
     tracks: [],
   });
   const isOffline = false;
-
-  const engine = useAudioEngine();
-  const playContext = useQueueStore((s) => s.playContext);
+  const { isSignedIn, likedSongs, userPlaylists } = useGoogleAuth();
+  const router = useRouter();
 
   const { scrollY } = useScrollOffset();
-  const scrollHandler = useAnimatedScrollHandler((e) => {
-    'worklet';
-    scrollY.value = e.contentOffset.y;
-  });
+  const handleScroll = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      scrollY.value = event.nativeEvent.contentOffset.y;
+    },
+    [scrollY]
+  );
 
   const { width } = useWindowDimensions();
   const columnWidth = (width - space[4] * 2) / 2;
@@ -152,6 +154,61 @@ export function LibraryScreenContent() {
     };
   }, []);
 
+  // Sync real YouTube Music user playlists and liked songs
+  useEffect(() => {
+    if (!isSignedIn) return;
+
+    if (likedSongs.length > 0) {
+      setLikedInfo({
+        count: likedSongs.length,
+        recentArtworkUrls: likedSongs
+          .slice(0, 4)
+          .map((s) => upgradeArtworkUrl(s.thumbnailUrl || ''))
+          .filter(Boolean),
+        tracks: likedSongs.map((s) => ({
+          id: s.videoId,
+          title: s.title,
+          artist: s.artist,
+          artists: [s.artist],
+          album: s.albumName || '',
+          artworkUrl: upgradeArtworkUrl(s.thumbnailUrl || ''),
+          thumbhash: '',
+          durationMs: 0,
+          isExplicit: Boolean(s.isExplicit),
+        })),
+      });
+    }
+
+    if (userPlaylists.length > 0) {
+      const ytPlaylistItems: LibraryItem[] = userPlaylists.map((pl, idx) => ({
+        id: pl.playlistId,
+        kind: 'playlist',
+        title: pl.title,
+        subtitle: pl.subtitle || 'YouTube Music Playlist',
+        artworkUrl: upgradeArtworkUrl(pl.thumbnailUrl || ''),
+        thumbhash: '',
+        download: { status: 'none' },
+        addedAt: new Date(Date.now() - idx * 60000).toISOString(),
+        playlist: {
+          id: pl.playlistId,
+          title: pl.title,
+          description: pl.subtitle || '',
+          artworkUrl: upgradeArtworkUrl(pl.thumbnailUrl || ''),
+          thumbhash: '',
+          trackCount: 0,
+          curated: false,
+          tracks: [],
+        },
+      }));
+
+      setLibraryItems((prev) => {
+        const existingIds = new Set(ytPlaylistItems.map((p) => p.id));
+        const filteredPrev = prev.filter((item) => !existingIds.has(item.id));
+        return [...ytPlaylistItems, ...filteredPrev];
+      });
+    }
+  }, [isSignedIn, likedSongs, userPlaylists]);
+
   const filteredItems = useMemo(
     () => applySort(applyFilter(libraryItems, filter, isOffline), sortOrder),
     [libraryItems, filter, sortOrder, isOffline],
@@ -160,37 +217,52 @@ export function LibraryScreenContent() {
   const handleItemPress = useCallback(
     (item: LibraryItem) => {
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      const tracksToPlay: Track[] = item.playlist?.tracks || item.album?.tracks || [];
-      if (tracksToPlay.length === 0) return;
-
-      playContext(tracksToPlay, 0, {
-        id: item.id,
-        title: item.title,
-        type: item.kind === 'playlist' ? 'playlist' : 'album',
-      });
-      const firstTrack = tracksToPlay[0];
-      if (firstTrack) {
-        void engine.load(firstTrack, true);
+      if (item.kind === 'playlist') {
+        router.push({
+          pathname: '/playlist/[id]',
+          params: {
+            id: item.id,
+            title: item.title,
+            artworkUrl: item.artworkUrl,
+            subtitle: item.subtitle,
+          },
+        });
+      } else if (item.kind === 'album') {
+        router.push({
+          pathname: '/album/[id]',
+          params: {
+            id: item.id,
+            title: item.title,
+            artworkUrl: item.artworkUrl,
+            artist: item.subtitle,
+          },
+        });
+      } else if (item.kind === 'artist') {
+        router.push({
+          pathname: '/artist/[id]',
+          params: {
+            id: item.id,
+            name: item.title,
+            artworkUrl: item.artworkUrl,
+          },
+        });
       }
     },
-    [engine, playContext]
+    [router]
   );
 
   const handleLikedSongsPlay = useCallback(() => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    const tracks = likedInfo.tracks;
-    if (tracks.length > 0) {
-      playContext(tracks, 0, {
+    router.push({
+      pathname: '/playlist/[id]',
+      params: {
         id: 'liked_songs',
         title: 'Liked Songs',
-        type: 'playlist',
-      });
-      const firstTrack = tracks[0];
-      if (firstTrack) {
-        void engine.load(firstTrack, true);
-      }
-    }
-  }, [engine, likedInfo.tracks, playContext]);
+        subtitle: `${likedInfo.count} songs`,
+        artworkUrl: likedInfo.recentArtworkUrls[0] || '',
+      },
+    });
+  }, [router, likedInfo.count, likedInfo.recentArtworkUrls]);
 
   const renderItem = useCallback(({ item }: { item: LibraryItem }) => {
     if (viewMode === 'grid') {
@@ -243,7 +315,7 @@ export function LibraryScreenContent() {
         key={viewMode}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.list}
-        onScroll={scrollHandler}
+        onScroll={handleScroll}
         scrollEventThrottle={16}
       />
       <ScrollFadeEdge edge="bottom" />
@@ -257,7 +329,7 @@ const styles = StyleSheet.create({
     backgroundColor: color.bg.base,
   },
   list: {
-    paddingBottom: space[8],
+    paddingBottom: BOTTOM_CHROME_HEIGHT + space[4],
   },
   screenTitle: {
     paddingHorizontal: space[4],

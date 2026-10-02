@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { StyleSheet, LogBox } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { color } from '@/design/tokens';
 import { ThemeProvider } from '@/design/context/ThemeContext';
 import { PaletteProvider } from '@/design/context/PaletteContext';
@@ -14,8 +14,7 @@ import { QualityTierProvider } from '@/design/hooks/useQualityTier';
 import { ScrollOffsetProvider } from '@/design/context/ScrollOffsetContext';
 import { useDownloadStore } from '@/downloads/DownloadStore';
 
-// Suppress yellow/red debug toast overlays from obstructing player touch targets
-LogBox.ignoreAllLogs(true);
+// LogBox.ignoreAllLogs(true);
 
 /**
  * Root layout — wraps the entire app in GestureHandlerRootView
@@ -24,6 +23,7 @@ LogBox.ignoreAllLogs(true);
  * topped with the persistent single player overlay.
  */
 export default function RootLayout() {
+  console.log('[RootLayout] Mounting root layout...');
   useEffect(() => {
     const playbackStore = usePlaybackStore.getState();
     const queueStore = useQueueStore.getState();

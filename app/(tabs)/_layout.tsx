@@ -8,48 +8,14 @@
  * - Wraps Tabs in an Animated.View so the ENTIRE bar (including native tab content) moves.
  */
 import { Tabs } from 'expo-router';
-import { StyleSheet } from 'react-native';
-import Animated, {
-  FadeIn,
-  useAnimatedStyle,
-  useAnimatedReaction,
-  useSharedValue,
-  withTiming,
-} from 'react-native-reanimated';
+import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { color, TAB_BAR_HEIGHT, type } from '@/design/tokens';
 import { HomeIcon, SearchIcon, LibraryIcon, DownloadIcon } from '@/design/components/OTOIcon';
-import { useScrollOffset } from '@/design/context/ScrollOffsetContext';
-
-const HIDE_THRESHOLD = 12;
-const REVEAL_THRESHOLD = 4;
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
   const barHeight = TAB_BAR_HEIGHT + insets.bottom;
-
-  const { scrollY } = useScrollOffset();
-  const tabBarTranslation = useSharedValue(0);
-
-  useAnimatedReaction(
-    () => scrollY.value,
-    (current, previous) => {
-      'worklet';
-      const prev = previous ?? current;
-      const delta = current - prev;
-
-      if (delta > 0 && current > HIDE_THRESHOLD) {
-        tabBarTranslation.value = withTiming(barHeight, { duration: 220 });
-      } else if (delta < -REVEAL_THRESHOLD || current < HIDE_THRESHOLD) {
-        tabBarTranslation.value = withTiming(0, { duration: 220 });
-      }
-    },
-    [barHeight]
-  );
-
-  const tabBarAnimStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: tabBarTranslation.value }],
-  }));
 
   return (
     <Tabs
@@ -63,7 +29,7 @@ export default function TabLayout() {
         tabBarInactiveTintColor: color.text.tertiary,
         tabBarLabelStyle: styles.tabLabel,
         tabBarBackground: () => (
-          <Animated.View style={[StyleSheet.absoluteFill, styles.glass, tabBarAnimStyle]} />
+          <View style={[StyleSheet.absoluteFill, styles.glass]} />
         ),
       }}
     >
@@ -73,9 +39,7 @@ export default function TabLayout() {
           title: 'Home',
           tabBarAccessibilityLabel: 'Home tab',
           tabBarIcon: ({ color: c, focused }) => (
-            <Animated.View entering={FadeIn.duration(200)}>
-              <HomeIcon size={22} color={c} focused={focused} />
-            </Animated.View>
+            <HomeIcon size={22} color={c} focused={focused} />
           ),
         }}
       />
@@ -85,9 +49,7 @@ export default function TabLayout() {
           title: 'Search',
           tabBarAccessibilityLabel: 'Search tab',
           tabBarIcon: ({ color: c, focused }) => (
-            <Animated.View entering={FadeIn.duration(200)}>
-              <SearchIcon size={22} color={c} focused={focused} />
-            </Animated.View>
+            <SearchIcon size={22} color={c} focused={focused} />
           ),
         }}
       />
@@ -97,9 +59,7 @@ export default function TabLayout() {
           title: 'Library',
           tabBarAccessibilityLabel: 'Library tab',
           tabBarIcon: ({ color: c, focused }) => (
-            <Animated.View entering={FadeIn.duration(200)}>
-              <LibraryIcon size={22} color={c} focused={focused} />
-            </Animated.View>
+            <LibraryIcon size={22} color={c} focused={focused} />
           ),
         }}
       />
@@ -109,9 +69,7 @@ export default function TabLayout() {
           title: 'Downloads',
           tabBarAccessibilityLabel: 'Downloads tab',
           tabBarIcon: ({ color: c, focused }) => (
-            <Animated.View entering={FadeIn.duration(200)}>
-              <DownloadIcon size={22} color={focused ? c : c} />
-            </Animated.View>
+            <DownloadIcon size={22} color={c} focused={focused} />
           ),
         }}
       />

@@ -14,7 +14,7 @@ import Animated, { useAnimatedScrollHandler } from 'react-native-reanimated';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
-import { color, space, radius } from '@/design/tokens';
+import { color, space, radius, BOTTOM_CHROME_HEIGHT } from '@/design/tokens';
 import { useScrollOffset } from '@/design/context/ScrollOffsetContext';
 import { ScrollFadeEdge } from '@/design/components/ScrollFadeEdge';
 import { OTOText } from '@/design/components/OTOText';
@@ -387,6 +387,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   bottomPad: {
-    height: space[7],
+    height: BOTTOM_CHROME_HEIGHT + space[4],
   },
 });

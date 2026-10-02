@@ -1,0 +1,148 @@
+name: Build & Release Android App
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      publish_release:
+        description: 'Publish as GitHub Release'
+        required: true
+        type: boolean
+        default: true
+      release_tag:
+        description: 'Release Tag (e.g. v0.1.0)'
+        required: false
+        type: string
+        default: 'v0.1.0'
+
+permissions:
+  contents: write
+
+jobs:
+  build-android:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: 17
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Setup Gradle Cache
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Install NPM Dependencies
+        run: npm ci
+
+      - name: TypeScript & Test Verification
+        run: |
+          npx tsc --noEmit
+          npm test
+
+      - name: Prebuild Native Android Project
+        run: npx expo prebuild --platform android --clean
+
+      - name: Generate Release Keystore for Standalone APK
+        run: |
+          cd android/app
+          keytool -genkey -v \
+            -keystore release.keystore \
+            -alias oto-key \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -storepass otopassword \
+            -keypass otopassword \
+            -dname "CN=OTO, OU=OTO Mobile, O=OTO, L=Global, S=Global, C=US"
+
+      - name: Configure Gradle Signing
+        run: |
+          cat << 'EOF' >> android/app/build.gradle
+          android {
+              signingConfigs {
+                  releaseConfig {
+                      storeFile file('release.keystore')
+                      storePassword 'otopassword'
+                      keyAlias 'oto-key'
+                      keyPassword 'otopassword'
+                  }
+              }
+              buildTypes {
+                  release {
+                      signingConfig signingConfigs.releaseConfig
+                  }
+              }
+          }
+          EOF
+
+      - name: Build Android APK
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon || ./gradlew assembleDebug --no-daemon
+
+      - name: Locate and Package APK
+        id: package_apk
+        run: |
+          APK_PATH=$(find android/app/build/outputs/apk -name "*.apk" | head -n 1)
+          if [ -z "$APK_PATH" ]; then
+            echo "Error: No APK found after build!"
+            exit 1
+          fi
+          echo "Found APK at: $APK_PATH"
+          cp "$APK_PATH" OTO-Music.apk
+          echo "apk_path=OTO-Music.apk" >> $GITHUB_OUTPUT
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: OTO-Music-APK
+          path: OTO-Music.apk
+          retention-days: 14
+
+      - name: Determine Release Information
+        id: release_info
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG="${{ inputs.release_tag }}"
+            SHOULD_RELEASE="${{ inputs.publish_release }}"
+          elif [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            TAG="${GITHUB_REF#refs/tags/}"
+            SHOULD_RELEASE="true"
+          else
+            TAG="v0.1.0-main"
+            SHOULD_RELEASE="false"
+          fi
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "should_release=$SHOULD_RELEASE" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        if: steps.release_info.outputs.should_release == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.release_info.outputs.tag }}
+          name: "OTO Music ${{ steps.release_info.outputs.tag }}"
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          files: OTO-Music.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

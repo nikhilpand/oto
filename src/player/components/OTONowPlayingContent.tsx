@@ -43,6 +43,7 @@ export interface OTONowPlayingContentProps {
   artworkSize: number;
   progress: SharedValue<number>;
   positionMs: SharedValue<number>;
+  onSheetModeChange?: (mode: 'player' | 'lyrics' | 'queue') => void;
 }
 
 /**
@@ -61,6 +62,7 @@ export function OTONowPlayingContent({
   artworkSize,
   progress,
   positionMs,
+  onSheetModeChange,
 }: OTONowPlayingContentProps): React.JSX.Element | null {
   const currentTrack = usePlaybackStore((s) => s.currentTrack);
   const isPlaying = usePlaybackStore((s) => s.isPlaying);
@@ -239,7 +241,10 @@ export function OTONowPlayingContent({
       {showQueue ? (
         <View style={styles.lyricsSection}>
           <OTOQueue
-            onClose={() => setShowQueue(false)}
+            onClose={() => {
+              setShowQueue(false);
+              onSheetModeChange?.('player');
+            }}
             onTrackSelect={(selected) => {
               setTrack(selected);
               void engine.load(selected, true);
@@ -401,8 +406,10 @@ export function OTONowPlayingContent({
           onPress={() => {
             void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             setShowLyrics((prev) => {
-              if (!prev) setShowQueue(false);
-              return !prev;
+              const next = !prev;
+              if (next) setShowQueue(false);
+              onSheetModeChange?.(next ? 'lyrics' : 'player');
+              return next;
             });
           }}
           size={minTouchSize}
@@ -421,8 +428,10 @@ export function OTONowPlayingContent({
           onPress={() => {
             void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             setShowQueue((prev) => {
-              if (!prev) setShowLyrics(false);
-              return !prev;
+              const next = !prev;
+              if (next) setShowLyrics(false);
+              onSheetModeChange?.(next ? 'queue' : 'player');
+              return next;
             });
           }}
           size={minTouchSize}

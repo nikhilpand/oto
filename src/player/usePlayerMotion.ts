@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useMemo, useCallback } from 'react';
 import {
   useSharedValue,
   withSpring,
@@ -57,37 +57,39 @@ export function usePlayerMotion({
     }
   }, [isReducedMotion, playerProgress]);
 
-  const panGesture = Gesture.Pan()
-    .activeOffsetY([10, 500])
-    .failOffsetX([-20, 20])
-    .onStart(() => {
-      'worklet';
-      // Capture current progress at the exact millisecond of touch (interruptible)
-      startProgress.value = playerProgress.value;
-    })
-    .onUpdate((event) => {
-      'worklet';
-      playerProgress.value = calculateProgressFromTranslation(
-        event.translationY,
-        screenHeight,
-        startProgress.value
-      );
-    })
-    .onEnd((event) => {
-      'worklet';
-      const target = determineSnapTarget(playerProgress.value, event.velocityY);
+  const panGesture = useMemo(() => {
+    return Gesture.Pan()
+      .activeOffsetY([-12, 12])
+      .shouldCancelWhenOutside(false)
+      .onStart(() => {
+        'worklet';
+        // Capture current progress at the exact millisecond of touch (interruptible)
+        startProgress.value = playerProgress.value;
+      })
+      .onUpdate((event) => {
+        'worklet';
+        playerProgress.value = calculateProgressFromTranslation(
+          event.translationY,
+          screenHeight,
+          startProgress.value
+        );
+      })
+      .onFinalize((event) => {
+        'worklet';
+        const target = determineSnapTarget(playerProgress.value, event.velocityY);
 
-      if (isReducedMotion) {
-        playerProgress.value = withTiming(target, { duration: duration.micro });
-      } else {
-        // Normalize velocity for spring physics
-        const normalizedVelocity = screenHeight > 0 ? -event.velocityY / screenHeight : 0;
-        playerProgress.value = withSpring(target, {
-          ...spring.spatial.default,
-          velocity: normalizedVelocity,
-        });
-      }
-    });
+        if (isReducedMotion) {
+          playerProgress.value = withTiming(target, { duration: duration.micro });
+        } else {
+          // Normalize velocity for spring physics
+          const normalizedVelocity = screenHeight > 0 ? -event.velocityY / screenHeight : 0;
+          playerProgress.value = withSpring(target, {
+            ...spring.spatial.default,
+            velocity: normalizedVelocity,
+          });
+        }
+      });
+  }, [screenHeight, isReducedMotion, playerProgress, startProgress]);
 
   return {
     playerProgress,

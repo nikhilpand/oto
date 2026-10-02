@@ -10,6 +10,8 @@ import { Image, ImageProps } from 'expo-image';
 import { color, radius } from '@/design/tokens';
 import { MusicNoteIcon } from './OTOIcon';
 
+import { upgradeArtworkUrl } from '@/utils/imageQuality';
+
 export interface OTOArtworkProps extends Omit<ImageProps, 'source' | 'style'> {
   uri?: string | null;
   thumbhash?: string | null;
@@ -45,7 +47,9 @@ export function OTOArtwork({
     backgroundColor: color.bg.s2,
   };
 
-  if (!uri || hasError) {
+  const highResUri = uri ? upgradeArtworkUrl(uri) : null;
+
+  if (!highResUri || hasError) {
     return (
       <View
         accessibilityRole="image"
@@ -66,7 +70,7 @@ export function OTOArtwork({
   return (
     <View style={[containerStyle, style]}>
       <Image
-        source={{ uri }}
+        source={{ uri: highResUri }}
         placeholder={placeholder}
         contentFit="cover"
         transition={200}

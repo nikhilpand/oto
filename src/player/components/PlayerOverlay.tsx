@@ -8,6 +8,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   useAnimatedStyle,
   interpolate,
+  useAnimatedReaction,
+  runOnJS,
 } from 'react-native-reanimated';
 import { space, radius, TAB_BAR_HEIGHT } from '@/design/tokens';
 import { OTOArtwork } from '@/design/components/OTOArtwork';
@@ -64,6 +66,24 @@ export function PlayerOverlay({
   );
 
   const [isExpanded, setIsExpanded] = useState(false);
+  const [activeSheetMode, setActiveSheetMode] = useState<'player' | 'lyrics' | 'queue'>('player');
+
+  const onExpansionStateChange = useCallback((expanded: boolean) => {
+    setIsExpanded(expanded);
+    if (!expanded) {
+      setActiveSheetMode('player');
+    }
+  }, []);
+
+  // Keep isExpanded in lockstep with UI-thread gesture / spring snaps
+  useAnimatedReaction(
+    () => playerProgress.value > 0.1,
+    (expanded, prev) => {
+      if (expanded !== prev) {
+        runOnJS(onExpansionStateChange)(expanded);
+      }
+    }
+  );
 
   const handleExpand = useCallback(() => {
     setIsExpanded(true);
@@ -72,6 +92,7 @@ export function PlayerOverlay({
 
   const handleCollapse = useCallback(() => {
     setIsExpanded(false);
+    setActiveSheetMode('player');
     collapse();
   }, [collapse]);
 
@@ -165,12 +186,14 @@ export function PlayerOverlay({
           onCollapse={handleCollapse}
           screenHeight={screenHeight}
           panGesture={panGesture}
+          panGestureEnabled={activeSheetMode === 'player'}
         >
           <OTONowPlayingContent
             onCollapse={handleCollapse}
             artworkSize={fullRect.width}
             progress={progress}
             positionMs={positionMs}
+            onSheetModeChange={setActiveSheetMode}
           />
         </OTONowPlayingShell>
       </View>

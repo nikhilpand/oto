@@ -12,7 +12,9 @@ import type { LyricLine, LyricWord, SupportedScript } from '@/utils/lyrics/types
 export interface OTOLyricLineProps {
   line: LyricLine;
   index: number;
-  activeIndex: number;
+  activeIndex?: number;
+  isActive?: boolean;
+  isNearby?: boolean;
   positionMs: SharedValue<number>;
   onSeek: (timeMs: number) => void;
   activeColor?: string;
@@ -90,6 +92,7 @@ const LyricWordView = memo(function LyricWordView({
             },
           ]}
           numberOfLines={1}
+          ellipsizeMode="clip"
         >
           {word.text}
         </Text>
@@ -142,21 +145,33 @@ export const OTOLyricLine = memo(function OTOLyricLine({
   line,
   index,
   activeIndex,
+  isActive: propIsActive,
+  isNearby: propIsNearby,
   positionMs,
   onSeek,
   activeColor = color.accent.signature,
   reducedMotion = false,
   script = 'latin',
 }: OTOLyricLineProps): React.JSX.Element {
-  const distance = Math.abs(index - activeIndex);
-  const isActive = distance === 0;
+  const isActive =
+    propIsActive !== undefined
+      ? propIsActive
+      : activeIndex !== undefined
+        ? index === activeIndex
+        : false;
+  const isNearby =
+    propIsNearby !== undefined
+      ? propIsNearby
+      : activeIndex !== undefined
+        ? Math.abs(index - activeIndex) === 1
+        : false;
 
   // Scale: +20% on active line (scale: 1.2), normal on inactive (scale: 1.0)
   // Zero layout thrashing: uses GPU matrix transform rather than changing fontSize
   const lineAnimatedStyle = useAnimatedStyle(() => {
     'worklet';
     const targetScale = isActive ? 1.2 : 1.0;
-    const targetOpacity = isActive ? 1.0 : distance === 1 ? 0.45 : 0.25;
+    const targetOpacity = isActive ? 1.0 : isNearby ? 0.45 : 0.25;
 
     if (reducedMotion) {
       return {
@@ -173,7 +188,7 @@ export const OTOLyricLine = memo(function OTOLyricLine({
         },
       ],
     };
-  }, [isActive, distance, reducedMotion]);
+  }, [isActive, isNearby, reducedMotion]);
 
   const handlePress = () => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -322,6 +337,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     lineHeight: 34,
     letterSpacing: -0.4,
+    minWidth: 400,
   },
   plainLineText: {
     fontSize: 26,

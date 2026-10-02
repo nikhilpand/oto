@@ -486,3 +486,20 @@ export function SyncIcon({
 
 // ─── 27. Timer Icon (alias to ClockIcon) ──────────────────────────────────────
 export { ClockIcon as TimerIcon };
+
+// ─── 28. Check Icon ──────────────────────────────────────────────────────────
+export function CheckIcon({
+  size = 20,
+  color = tokensColor.accent.signature,
+  style,
+}: IconProps) {
+  return (
+    <View
+      style={[{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }, style]}
+      accessibilityRole="image"
+      accessibilityLabel="Success check"
+    >
+      <Ionicons name="checkmark-circle" size={size} color={color as string} />
+    </View>
+  );
+}

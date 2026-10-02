@@ -7,6 +7,7 @@
 
 import React, { useCallback } from 'react';
 import { View, StyleSheet, Pressable, Platform } from 'react-native';
+import { Image } from 'expo-image';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -21,6 +22,7 @@ export interface HomeHeaderProps {
   greeting: string;
   /** Optional time-aware subtitle. Defaults to a generic music message. */
   subtitle?: string;
+  avatarUrl?: string;
   onSearchPress: () => void;
   onProfilePress?: () => void;
   onStorybookToggle?: () => void;
@@ -29,6 +31,7 @@ export interface HomeHeaderProps {
 export function HomeHeader({
   greeting,
   subtitle = 'Soundtracks for your day',
+  avatarUrl,
   onSearchPress,
   onProfilePress,
   onStorybookToggle,
@@ -89,9 +92,18 @@ export function HomeHeader({
           >
             <Animated.View style={[styles.avatar, avatarStyle]}>
               <View style={styles.avatarInner}>
-                <OTOText variant="caption" weight="bold" style={styles.avatarText}>
-                  O
-                </OTOText>
+                {avatarUrl ? (
+                  <Image
+                    source={{ uri: avatarUrl }}
+                    style={styles.avatarImage}
+                    contentFit="cover"
+                    transition={200}
+                  />
+                ) : (
+                  <OTOText variant="caption" weight="bold" style={styles.avatarText}>
+                    O
+                  </OTOText>
+                )}
               </View>
             </Animated.View>
           </Pressable>
@@ -169,6 +181,12 @@ const styles = StyleSheet.create({
     backgroundColor: color.bg.s3,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 15,
   },
   avatarText: {
     color: color.accent.signature,

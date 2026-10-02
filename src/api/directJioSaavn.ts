@@ -12,7 +12,7 @@
 
 import { Track, ResolvedStream } from '@/domain/types';
 import { SearchResults, TopResult, SearchArtist, SearchAlbum } from '@/search/types';
-import { HomeFeedData, getGreeting } from '@/home/types';
+import { HomeFeedData, MadeForYouItem, NewReleaseItem, getGreeting } from '@/home/types';
 import { decryptJioSaavnUrl } from './crypto/desEcb';
 import { findBestMatch, MatchCandidate, MatchTarget } from './matching/trackMatcher';
 import { circuitBreakers } from './resilience/circuitBreaker';
@@ -22,6 +22,18 @@ const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36
 
 // In-memory cache for encrypted media URLs to allow instantaneous 0ms playback
 const encryptedUrlCache = new Map<string, string>();
+
+/**
+ * Upgrades JioSaavn thumbnail URLs to crisp 500x500 resolution and ensures HTTPS.
+ */
+export function upgradeImageUrl(url?: string | null): string {
+  if (!url) return '';
+  return url
+    .replace(/^http:\/\//, 'https://')
+    .replace(/-\d+x\d+\.(jpg|jpeg|png|webp)/i, '-500x500.$1')
+    .replace('150x150', '500x500')
+    .replace('50x50', '500x500');
+}
 
 /**
  * Unescapes standard HTML entities in strings from JioSaavn.
@@ -74,9 +86,7 @@ export function mapJioSaavnSongToTrack(s: any): Track {
 
   // High-res artwork (500x500)
   const rawImage = s.image || s.artwork_url || '';
-  const artworkUrl = rawImage
-    .replace('150x150', '500x500')
-    .replace('50x50', '500x500');
+  const artworkUrl = upgradeImageUrl(rawImage);
 
   // Duration in milliseconds
   let durationMs = 195000;
@@ -380,35 +390,112 @@ export async function resolveDirectStream(
 
 /**
  * Fetches the direct live home feed from JioSaavn.
+ * Sourced from multiple curated top playlists and new release albums to guarantee
+ * diverse, distinct high-resolution cover artwork for every track, shelf, and section.
  */
 export async function getDirectHomeFeed(): Promise<HomeFeedData | null> {
   return circuitBreakers.jiosaavn.execute(async () => {
-    // 1. Fetch launch data and trending songs in parallel
-    const launchPromise = fetch(
+    // 1. Fetch launch data containing top playlists, charts, and new albums
+    const launchData = await fetch(
       `${JIOSAAVN_API_BASE}?__call=webapi.getLaunchData&api_version=4&_format=json&_marker=0&ctx=android`,
       { headers: { 'User-Agent': USER_AGENT } }
-    ).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+    )
+      .then((r) => (r.ok ? r.json() : null))
+      .catch(() => null);
 
-    const trendingPromise = fetch(
-      `${JIOSAAVN_API_BASE}?__call=search.getResults&q=Hindi%20Trending%202026&_format=json&_marker=0&api_version=4&ctx=android&n=20`,
-      { headers: { 'User-Agent': USER_AGENT } }
-    ).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+    // 2. Fetch tracks from the top 3-4 curated playlists in parallel
+    const topPlaylists = (launchData?.top_playlists || []).slice(0, 4);
+    const playlistPromises = topPlaylists.map((p: any) =>
+      fetch(
+        `${JIOSAAVN_API_BASE}?__call=playlist.getDetails&listid=${encodeURIComponent(
+          p.id
+        )}&api_version=4&_format=json&_marker=0&ctx=android`,
+        { headers: { 'User-Agent': USER_AGENT } }
+      )
+        .then((r) => (r.ok ? r.json() : null))
+        .catch(() => null)
+    );
 
-    const [launchData, trendingData] = await Promise.all([launchPromise, trendingPromise]);
+    const playlistDetails = await Promise.all(playlistPromises);
 
     const allTracks: Track[] = [];
+    const seenPids = new Set<string>();
+    const madeForYou: MadeForYouItem[] = [];
 
-    // Extract trending tracks
-    if (trendingData?.results && Array.isArray(trendingData.results)) {
-      for (const item of trendingData.results) {
-        allTracks.push(mapJioSaavnSongToTrack(item));
+    // Extract playlists and their tracks
+    playlistDetails.forEach((pd, idx) => {
+      const plMeta = topPlaylists[idx];
+      const rawSongs = (pd?.list || pd?.songs || []) as any[];
+      const playlistTracks: Track[] = [];
+
+      for (const s of rawSongs) {
+        const pid = String(s.id || s.song_id || '');
+        if (pid) {
+          const track = mapJioSaavnSongToTrack(s);
+          playlistTracks.push(track);
+          if (!seenPids.has(pid)) {
+            seenPids.add(pid);
+            allTracks.push(track);
+          }
+        }
+      }
+
+      if (plMeta) {
+        const rawCover = pd?.image || plMeta.image || playlistTracks[0]?.artworkUrl || '';
+        const plCover = upgradeImageUrl(rawCover);
+        madeForYou.push({
+          id: `pl_${plMeta.id || idx}`,
+          title: unescapeHtml(pd?.title || plMeta.title || 'Curated Mix'),
+          subtitle: unescapeHtml(
+            pd?.subtitle ||
+              plMeta.subtitle ||
+              `${playlistTracks.length || plMeta.more_info?.song_count || 30} songs • JioSaavn Editorial`
+          ),
+          artworkUrl: plCover || playlistTracks[0]?.artworkUrl || '',
+          thumbhash: playlistTracks[0]?.thumbhash || '3OcRJYB4d3h/iIeHeEh3eIh4h4iH',
+          trackCount: playlistTracks.length || Number(plMeta.more_info?.song_count || 25),
+          tracks: playlistTracks,
+        });
+      }
+    });
+
+    // 3. Extract new releases from launchData.new_albums
+    const rawNewAlbums = (launchData?.new_albums || []).slice(0, 8);
+    const newReleases: NewReleaseItem[] = [];
+
+    for (const alb of rawNewAlbums) {
+      const albumTrack = mapJioSaavnSongToTrack(alb);
+      const rawCover = alb.image || alb.artwork_url || '';
+      const albumCover = upgradeImageUrl(rawCover) || albumTrack.artworkUrl;
+
+      newReleases.push({
+        id: `rel_${alb.id || albumTrack.id}`,
+        title: albumTrack.title,
+        artist: albumTrack.artist,
+        artworkUrl: albumCover,
+        thumbhash: albumTrack.thumbhash,
+        releaseBadge: alb.year ? String(alb.year) : 'New',
+        tracks: [albumTrack],
+      });
+
+      const pid = String(alb.id || '');
+      if (pid && !seenPids.has(pid)) {
+        seenPids.add(pid);
+        allTracks.push(albumTrack);
       }
     }
 
-    // Extract top playlist tracks from launch data if available
-    if (launchData?.new_trending && Array.isArray(launchData.new_trending)) {
-      for (const item of launchData.new_trending) {
-        if (item.type === 'song') {
+    // Fallback if playlists had no tracks: search diverse queries
+    if (allTracks.length === 0) {
+      const fallbackTrending = await fetch(
+        `${JIOSAAVN_API_BASE}?__call=search.getResults&q=Hindi%20Hits%202026&_format=json&_marker=0&api_version=4&ctx=android&n=20`,
+        { headers: { 'User-Agent': USER_AGENT } }
+      )
+        .then((r) => (r.ok ? r.json() : null))
+        .catch(() => null);
+
+      if (fallbackTrending?.results && Array.isArray(fallbackTrending.results)) {
+        for (const item of fallbackTrending.results) {
           allTracks.push(mapJioSaavnSongToTrack(item));
         }
       }
@@ -418,52 +505,49 @@ export async function getDirectHomeFeed(): Promise<HomeFeedData | null> {
       return null;
     }
 
+    // Partition distinct tracks so each section has unique songs and art
     const heroTrack = allTracks[0]!;
+
+    // Continue listening: 4 tracks with varied playback progress
     const continueListening = allTracks.slice(1, 5).map((track, i) => ({
       track,
       progressPercent: [75, 45, 90, 20][i] ?? 50,
       lastPlayedAt: Date.now() - 1000 * 60 * (i + 1) * 30,
     }));
 
-    const quickPicks = allTracks.slice(0, 8);
+    // Quick picks: next 8 distinct tracks (non-overlapping with continueListening)
+    const quickPicks = allTracks.slice(5, 13);
+    if (quickPicks.length === 0) {
+      quickPicks.push(...allTracks.slice(1, 9));
+    }
 
-    // Build curated shelves
-    const shelves = [
-      {
-        id: 'trending_hindi',
-        title: 'Trending Right Now',
-        subtitle: 'Top charts & viral hits',
-        badge: 'Trending',
-        items: allTracks.slice(0, 10),
-      },
-      {
-        id: 'melodic_vibes',
-        title: 'Soul & Melodies',
-        subtitle: 'Acoustic harmonies and romantic anthems',
-        badge: 'Popular',
-        items: allTracks.slice(5, 15),
-      },
-    ];
+    // Fallback if madeForYou was empty
+    if (madeForYou.length === 0) {
+      madeForYou.push({
+        id: 'pl_fallback',
+        title: 'Top Hits',
+        subtitle: 'Trending songs for you',
+        artworkUrl: heroTrack.artworkUrl,
+        thumbhash: heroTrack.thumbhash,
+        trackCount: allTracks.length,
+        tracks: allTracks,
+      });
+    }
 
-    const madeForYou = shelves.map((shelf) => ({
-      id: shelf.id,
-      title: shelf.title,
-      subtitle: shelf.subtitle,
-      artworkUrl: shelf.items[0]?.artworkUrl || heroTrack.artworkUrl,
-      thumbhash: heroTrack.thumbhash,
-      trackCount: shelf.items.length,
-      tracks: shelf.items,
-    }));
-
-    const newReleases = shelves.map((shelf) => ({
-      id: `rel_${shelf.id}`,
-      title: shelf.items[0]?.title || heroTrack.title,
-      artist: shelf.items[0]?.artist || heroTrack.artist,
-      artworkUrl: shelf.items[0]?.artworkUrl || heroTrack.artworkUrl,
-      thumbhash: heroTrack.thumbhash,
-      releaseBadge: shelf.badge,
-      tracks: shelf.items,
-    }));
+    // Fallback if newReleases was empty
+    if (newReleases.length === 0) {
+      allTracks.slice(0, 4).forEach((track, i) => {
+        newReleases.push({
+          id: `rel_${track.id}_${i}`,
+          title: track.title,
+          artist: track.artist,
+          artworkUrl: track.artworkUrl,
+          thumbhash: track.thumbhash,
+          releaseBadge: 'Trending',
+          tracks: [track],
+        });
+      });
+    }
 
     return {
       greeting: getGreeting(),

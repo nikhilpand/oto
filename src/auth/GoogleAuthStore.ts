@@ -11,6 +11,9 @@
  * @see BITCHORD_RE/13_DATABASE_STATE.md
  */
 
+import { extractSapisid } from './innertube/crypto';
+import { InnertubeSession } from './innertube/types';
+
 export interface YouTubeProfile {
   readonly profileId: string;
   readonly name: string;
@@ -35,30 +38,51 @@ export interface AuthStorageBackend {
 }
 
 class MMKVStorageAdapter implements AuthStorageBackend {
-  private mmkv: {
-    getString: (k: string) => string | undefined;
-    set: (k: string, v: string) => void;
-    delete: (k: string) => void;
-  } | null = null;
+  private mmkv: any = null;
+  private memory = new Map<string, string>();
 
   constructor() {
     try {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const { MMKV } = require('react-native-mmkv');
-      this.mmkv = new MMKV({ id: 'oto.auth' });
+      const { createMMKV } = require('react-native-mmkv');
+      this.mmkv = createMMKV({ id: 'oto.auth' });
     } catch {
       this.mmkv = null;
     }
   }
 
   getString(key: string): string | undefined {
-    return this.mmkv?.getString(key);
+    if (this.mmkv) {
+      try {
+        const val = this.mmkv.getString(key);
+        if (val !== undefined) return val;
+      } catch {
+        // Fall back to memory
+      }
+    }
+    return this.memory.get(key);
   }
+
   set(key: string, value: string): void {
-    this.mmkv?.set(key, value);
+    if (this.mmkv) {
+      try {
+        this.mmkv.set(key, value);
+      } catch {
+        // Fall back to memory
+      }
+    }
+    this.memory.set(key, value);
   }
+
   delete(key: string): void {
-    this.mmkv?.delete(key);
+    if (this.mmkv) {
+      try {
+        this.mmkv.delete(key);
+      } catch {
+        // Fall back to memory
+      }
+    }
+    this.memory.delete(key);
   }
 }
 
@@ -200,10 +224,36 @@ export class GoogleAuthStore {
   }
 
   /**
+   * Converts the active Google account session to an InnertubeSession.
+   */
+  public static toInnertubeSession(): InnertubeSession | null {
+    const active = this.getActiveSession();
+    if (!active || !active.cookie) return null;
+    const sapisid = extractSapisid(active.cookie);
+    if (!sapisid) return null;
+
+    const activeProfile = active.profiles.find((p) => p.profileId === active.activeProfileId) ?? active.profiles[0];
+
+    return {
+      cookie: active.cookie,
+      sapisid,
+      pageId: activeProfile?.pageId,
+      authUser: '0',
+      account: activeProfile
+        ? {
+            name: activeProfile.name,
+            email: activeProfile.email,
+            avatarUrl: activeProfile.avatarUrl,
+            pageId: activeProfile.pageId,
+          }
+        : undefined,
+    };
+  }
+
+  /**
    * Extracts the SAPISID cookie value needed for Innertube authorization.
    */
   public static extractSapisid(cookie: string): string | null {
-    const match = /(?:^|;\s*)SAPISID=([^;]+)/i.exec(cookie);
-    return match ? (match[1] ?? null) : null;
+    return extractSapisid(cookie);
   }
 }

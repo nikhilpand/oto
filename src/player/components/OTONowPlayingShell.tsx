@@ -12,7 +12,7 @@ import Animated, {
   interpolate,
   type SharedValue,
 } from 'react-native-reanimated';
-import type { Gesture } from 'react-native-gesture-handler';
+import { GestureDetector, type Gesture } from 'react-native-gesture-handler';
 import { color, space } from '@/design/tokens';
 import { usePlaybackStore } from '@/store/usePlaybackStore';
 import { OTODynamicBackground } from './OTODynamicBackground';
@@ -22,11 +22,12 @@ export interface OTONowPlayingShellProps {
   onCollapse: () => void;
   screenHeight: number;
   panGesture?: ReturnType<typeof Gesture.Pan>;
+  panGestureEnabled?: boolean;
   children?: React.ReactNode;
 }
 
 /**
- * OTONowPlayingShell — Full-screen expandable container for the active player.
+ * OTONowPlayingShell - Full-screen expandable container for the active player.
  *
  * Driven by the single shared value `playerProgress` (0 = collapsed, 1 = full).
  * Contains:
@@ -38,7 +39,8 @@ export interface OTONowPlayingShellProps {
 export function OTONowPlayingShell({
   playerProgress,
   screenHeight,
-  panGesture: _panGesture,
+  panGesture,
+  panGestureEnabled = true,
   children,
 }: OTONowPlayingShellProps): React.JSX.Element | null {
   const insets = useSafeAreaInsets();
@@ -101,10 +103,28 @@ export function OTONowPlayingShell({
         <OTODynamicBackground />
       </View>
 
-      {/* Layer 4: Now Playing interactive content */}
-      <View style={styles.content}>
-        {children}
-      </View>
+      {/* Layer 4 & 5: Interactive Now Playing hierarchy */}
+      {panGesture && panGestureEnabled ? (
+        <GestureDetector gesture={panGesture}>
+          <View style={styles.interactiveArea}>
+            <View style={styles.dragHandleArea} pointerEvents="none">
+              <View style={styles.dragHandle} />
+            </View>
+            <View style={styles.content}>
+              {children}
+            </View>
+          </View>
+        </GestureDetector>
+      ) : (
+        <View style={styles.interactiveArea}>
+          <View style={styles.dragHandleArea} pointerEvents="none">
+            <View style={styles.dragHandle} />
+          </View>
+          <View style={styles.content}>
+            {children}
+          </View>
+        </View>
+      )}
     </Animated.View>
   );
 }
@@ -120,9 +140,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: space[5],
     overflow: 'hidden',
   },
+  interactiveArea: {
+    flex: 1,
+  },
   scrim: {
     ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(0, 0, 0, 0.52)',
+  },
+  dragHandleArea: {
+    width: '100%',
+    alignItems: 'center',
+    paddingTop: space[1],
+    paddingBottom: space[2],
+  },
+  dragHandle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(255, 255, 255, 0.28)',
   },
   content: {
     flex: 1,
