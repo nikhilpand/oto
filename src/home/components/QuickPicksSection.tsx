@@ -6,9 +6,9 @@
  */
 
 import React from 'react';
-import { View, StyleSheet, Platform } from 'react-native';
+import { View, StyleSheet, Platform, Pressable } from 'react-native';
 import Animated, { FadeInLeft, useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
-import { Pressable } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { color, space, radius, touchTarget, spring } from '@/design/tokens';
 import { useReducedMotion } from '@/design/hooks/useReducedMotion';
 import { OTOText } from '@/design/components/OTOText';
@@ -82,7 +82,8 @@ function QuickPickRow({
         accessible
         accessibilityRole="button"
         accessibilityLabel={`Play ${track.title} by ${track.artist}`}
-        onPress={() => onPlayTrack(track)}
+        accessibilityHint="Starts playback of this track"
+        onPress={() => { void Haptics.selectionAsync(); onPlayTrack(track); }}
         onPressIn={() => { if (!reducedMotion) scale.value = withSpring(0.97, spring.spatial.fast); }}
         onPressOut={() => { if (!reducedMotion) scale.value = withSpring(1, spring.spatial.fast); }}
         style={[styles.row, { minHeight }]}

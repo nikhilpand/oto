@@ -97,6 +97,21 @@ export function OTOProgressBar({
       });
   }, [trackWidth, isDragging, dragRatio, triggerHaptic, handleSeekCommit]);
 
+  // Tap-to-seek gesture for instantaneous playhead jump
+  const tapGesture = useMemo(() => {
+    return Gesture.Tap()
+      .onEnd((e) => {
+        'worklet';
+        const ratio = clampScrubProgress(e.x, trackWidth);
+        runOnJS(triggerHaptic)();
+        runOnJS(handleSeekCommit)(ratio);
+      });
+  }, [trackWidth, triggerHaptic, handleSeekCommit]);
+
+  const composedGesture = useMemo(() => {
+    return Gesture.Race(panGesture, tapGesture);
+  }, [panGesture, tapGesture]);
+
   // Track height expands smoothly from 4pt to 6pt when scrubbing
   const trackAnimatedStyle = useAnimatedStyle(() => {
     const height = isDragging.value ? withSpring(6, spring.spatial.playful) : withSpring(4, spring.spatial.fast);
@@ -143,7 +158,7 @@ export function OTOProgressBar({
   return (
     <View style={styles.container}>
       {/* Hit target container ensures >= 44pt touchable area */}
-      <GestureDetector gesture={panGesture}>
+      <GestureDetector gesture={composedGesture}>
         <View
           style={styles.touchArea}
           onLayout={handleLayout}

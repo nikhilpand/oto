@@ -6,6 +6,7 @@
 
 import mockCatalog from '@/mock/mockCatalog.json';
 import { Track } from '@/domain/types';
+import { color } from '@/design/tokens';
 import {
   HomeFeedData,
   ContinueListeningItem,
@@ -124,7 +125,7 @@ export const mockMoodsGenres: MoodGenreItem[] = [
     title: 'Deep Focus',
     description: 'Ambient textures and gentle electronic pulse',
     accentColor: '#38bdf8',
-    gradientColors: ['#0f172a', '#1e293b'],
+    gradientColors: [color.bg.s1, color.bg.s3],
     trackCount: 48,
   },
   {
@@ -132,7 +133,7 @@ export const mockMoodsGenres: MoodGenreItem[] = [
     title: 'Night Drive',
     description: 'Cinematic synths, retro drum machines, neon glows',
     accentColor: '#fb7185',
-    gradientColors: ['#1c1917', '#292524'],
+    gradientColors: [color.bg.base, color.bg.s2],
     trackCount: 54,
   },
   {
@@ -140,7 +141,7 @@ export const mockMoodsGenres: MoodGenreItem[] = [
     title: 'Acoustic Warmth',
     description: 'Intimate fingerstyle guitars and soft piano',
     accentColor: '#fbbf24',
-    gradientColors: ['#1c1917', '#26221f'],
+    gradientColors: [color.bg.base, color.bg.s2],
     trackCount: 36,
   },
   {
@@ -148,7 +149,7 @@ export const mockMoodsGenres: MoodGenreItem[] = [
     title: 'Atmospheric Bass',
     description: 'Sub-heavy rhythms, UK garage, and broken beat',
     accentColor: '#a78bfa',
-    gradientColors: ['#18181b', '#27272a'],
+    gradientColors: [color.bg.s1, color.bg.s3],
     trackCount: 42,
   },
   {
@@ -156,7 +157,7 @@ export const mockMoodsGenres: MoodGenreItem[] = [
     title: 'Floating Point',
     description: 'Ethereal sound design, generative drones, calm',
     accentColor: '#34d399',
-    gradientColors: ['#064e3b', '#065f46'],
+    gradientColors: [color.bg.base, color.bg.s2],
     trackCount: 60,
   },
   {
@@ -164,7 +165,7 @@ export const mockMoodsGenres: MoodGenreItem[] = [
     title: 'Golden Hour',
     description: 'Warm soul, neo-classical, and evening jazz',
     accentColor: '#f97316',
-    gradientColors: ['#431407', '#7c2d12'],
+    gradientColors: [color.bg.base, color.bg.s1],
     trackCount: 39,
   },
 ];

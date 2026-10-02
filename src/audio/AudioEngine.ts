@@ -61,6 +61,12 @@ export interface AudioEngine {
   /** Sets the equal-power crossfade duration in milliseconds (0 to 12000). */
   setCrossfadeDuration(ms: number): Promise<void>;
 
+  /** Sets the audio output volume (0.0 to 1.0). */
+  setVolume(volume: number): Promise<void>;
+
+  /** Gets current audio output volume (0.0 to 1.0). */
+  getVolume(): number;
+
   /** Gets current status. */
   getStatus(): PlaybackStatus;
 

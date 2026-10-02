@@ -4,6 +4,8 @@ import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withSpring,
+  withTiming,
+  interpolateColor,
   type SharedValue,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
@@ -32,8 +34,9 @@ import { useAudioEngine } from '@/audio/AudioContext';
 import { OTOProgressBar } from './OTOProgressBar';
 import { getPauseScale } from '../math/nowPlayingMath';
 import { OTOLyrics } from '@/lyrics/components/OTOLyrics';
-import { mockParsedDuetLyrics } from '@/mock/mockLyrics';
 import { OTOQueue } from '@/queue/components/OTOQueue';
+import { fetchLiveLyrics } from '@/api/otoBackend';
+import type { ParsedLyrics } from '@/utils/lyrics/types';
 
 export interface OTONowPlayingContentProps {
   onCollapse: () => void;
@@ -72,19 +75,73 @@ export function OTONowPlayingContent({
   const [isLiked, setIsLiked] = useState(false);
   const [showLyrics, setShowLyrics] = useState(false);
   const [showQueue, setShowQueue] = useState(false);
+  const [liveLyrics, setLiveLyrics] = useState<ParsedLyrics | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    if (currentTrack) {
+      void fetchLiveLyrics(
+      currentTrack.title,
+      currentTrack.artist,
+      currentTrack.durationMs,
+      currentTrack.album
+    ).then((lines) => {
+      if (!isMounted || !lines || lines.length === 0) return;
+      setLiveLyrics({
+        lines: lines.map((l, i) => ({
+          id: `live_line_${i}`,
+          timeMs: l.timeMs,
+          endMs: l.timeMs + (l.durationMs || 3000),
+          text: l.text,
+          words: [],
+          isWordSynced: false,
+          alignment: 'start',
+        })),
+        isWordSynced: false,
+        isLineSynced: true,
+        hasDuet: false,
+        script: 'latin',
+      });
+    });
+  }
+    return () => {
+      isMounted = false;
+    };
+  }, [currentTrack]);
 
   // Artwork pause-scale animation: 1.0 playing -> 0.92 paused
   const artworkScale = useSharedValue(getPauseScale(isPlaying));
+  // Play button palette reactive color: 0 = neutral white, 1 = accent
+  const playButtonColorProgress = useSharedValue(activePalette.accent ? 1 : 0);
+  // Like button spring scale
+  const likeScale = useSharedValue(1);
 
   useEffect(() => {
     artworkScale.value = withSpring(getPauseScale(isPlaying), spring.spatial.playful);
   }, [isPlaying, artworkScale]);
+
+  useEffect(() => {
+    playButtonColorProgress.value = withTiming(activePalette.accent ? 1 : 0, { duration: 600 });
+  }, [activePalette.accent, playButtonColorProgress]);
 
   const artworkAnimatedStyle = useAnimatedStyle(() => {
     return {
       transform: [{ scale: artworkScale.value }],
     };
   });
+
+  const playButtonAnimatedStyle = useAnimatedStyle(() => {
+    const bg = interpolateColor(
+      playButtonColorProgress.value,
+      [0, 1],
+      [color.text.primary, activePalette.accent || color.text.primary]
+    );
+    return { backgroundColor: bg };
+  });
+
+  const likeAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: likeScale.value }],
+  }));
 
   const handleTogglePlay = useCallback(() => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -107,8 +164,11 @@ export function OTONowPlayingContent({
 
   const handleToggleLike = useCallback(() => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    likeScale.value = withSpring(1.35, spring.spatial.fast, () => {
+      likeScale.value = withSpring(1, spring.spatial.playful);
+    });
     setIsLiked((prev) => !prev);
-  }, []);
+  }, [likeScale]);
 
   const handleToggleShuffle = useCallback(() => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -189,7 +249,15 @@ export function OTONowPlayingContent({
       ) : showLyrics ? (
         <View style={styles.lyricsSection}>
           <OTOLyrics
-            lyrics={mockParsedDuetLyrics}
+            lyrics={
+              liveLyrics || {
+                lines: [],
+                isWordSynced: false,
+                isLineSynced: false,
+                hasDuet: false,
+                script: 'latin',
+              }
+            }
             positionMs={positionMs}
             onSeek={handleSeek}
             mode="fullscreen"
@@ -233,7 +301,12 @@ export function OTONowPlayingContent({
               onPress={handleToggleLike}
               style={[styles.likeButton, { width: minTouchSize, height: minTouchSize }]}
             >
-              <HeartIcon filled={isLiked} />
+              <Animated.View style={likeAnimatedStyle}>
+                <HeartIcon
+                  filled={isLiked}
+                  color={isLiked ? (activePalette.accent || color.accent.signature) : color.text.secondary}
+                />
+              </Animated.View>
             </Pressable>
           </View>
         </>
@@ -263,9 +336,10 @@ export function OTONowPlayingContent({
           onPress={handleSkipPrev}
           size={minTouchSize}
         />
-        <View
+        <Animated.View
           style={[
             styles.playButtonWrapper,
+            playButtonAnimatedStyle,
             {
               shadowColor: activePalette.accent || color.accent.signature,
             },
@@ -287,7 +361,7 @@ export function OTONowPlayingContent({
               <PlayIcon size={30} color={color.bg.base} />
             )}
           </Pressable>
-        </View>
+        </Animated.View>
         <OTOIconButton
           icon={<SkipForwardIcon size={26} />}
           accessibilityLabel="Next track"
@@ -300,6 +374,15 @@ export function OTONowPlayingContent({
           onPress={handleToggleRepeat}
           size={minTouchSize}
         />
+      </View>
+
+      {/* 5.5 Volume Slider */}
+      <View style={styles.volumeRow}>
+        <DeviceIcon size={16} color={color.text.tertiary} />
+        <View style={styles.volumeTrack}>
+          <View style={styles.volumeFill} />
+        </View>
+        <DeviceIcon size={20} color={color.text.tertiary} />
       </View>
 
       {/* 6. Secondary Action Bar (~8%) */}
@@ -424,7 +507,6 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: radius.full,
-    backgroundColor: color.text.primary,
     justifyContent: 'center',
     alignItems: 'center',
     shadowOffset: { width: 0, height: 6 },
@@ -438,6 +520,27 @@ const styles = StyleSheet.create({
     borderRadius: radius.full,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  volumeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space[3],
+    paddingHorizontal: space[1],
+    marginTop: space[3],
+    marginBottom: space[1],
+  },
+  volumeTrack: {
+    flex: 1,
+    height: 4,
+    backgroundColor: color.glass.tint,
+    borderRadius: radius.full,
+    overflow: 'hidden',
+  },
+  volumeFill: {
+    width: '70%',
+    height: '100%',
+    backgroundColor: color.text.secondary,
+    borderRadius: radius.full,
   },
   secondaryRow: {
     flexDirection: 'row',

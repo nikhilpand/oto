@@ -1,15 +1,71 @@
 /**
  * MoodsGenresSection — Typographic Cards with Curated Color Palettes
  *
- * Distinct visual density: 2-row horizontal scroller of typographic capsule cards
- * (strictly no generic stock photos, as mandated by the Anti-AI-Slop Checklist).
+ * 2-row horizontal scroller of typographic capsule cards with spring
+ * press physics. Each card pops the accent as a subtle background wash.
  */
 
 import React from 'react';
 import { View, StyleSheet, ScrollView, Pressable } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+} from 'react-native-reanimated';
 import { space, radius } from '@/design/tokens';
 import { OTOText } from '@/design/components/OTOText';
 import { MoodGenreItem } from '../types';
+
+const SPRING = { damping: 16, stiffness: 280, mass: 0.75 };
+
+function MoodCard({
+  item,
+  onSelect,
+}: {
+  item: MoodGenreItem;
+  onSelect: (item: MoodGenreItem) => void;
+}) {
+  const scale = useSharedValue(1);
+
+  const animStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  return (
+    <Pressable
+      accessible
+      accessibilityRole="button"
+      accessibilityLabel={`Mood and Genre: ${item.title}. ${item.description}. ${item.trackCount} tracks available.`}
+      accessibilityHint="Explores tracks in this genre"
+      onPressIn={() => { scale.value = withSpring(0.92, SPRING); }}
+      onPressOut={() => { scale.value = withSpring(1, SPRING); }}
+      onPress={() => onSelect(item)}
+    >
+      <Animated.View
+        style={[
+          styles.card,
+          {
+            backgroundColor: item.gradientColors[0],
+            borderColor: item.accentColor + '44',
+          },
+          animStyle,
+        ]}
+      >
+        {/* Accent dot indicator */}
+        <View style={[styles.accentDot, { backgroundColor: item.accentColor }]} />
+
+        <View style={styles.cardContent}>
+          <OTOText variant="caption" weight="bold" numberOfLines={1}>
+            {item.title}
+          </OTOText>
+          <OTOText variant="meta" colorRole="secondary" numberOfLines={1}>
+            {item.trackCount} tracks
+          </OTOText>
+        </View>
+      </Animated.View>
+    </Pressable>
+  );
+}
 
 export interface MoodsGenresSectionProps {
   items: MoodGenreItem[];
@@ -22,46 +78,15 @@ export function MoodsGenresSection({
 }: MoodsGenresSectionProps): React.JSX.Element | null {
   if (!items || items.length === 0) return null;
 
-  // Split into 2 rows for balanced 2-tier scrolling
   const mid = Math.ceil(items.length / 2);
   const row1 = items.slice(0, mid);
   const row2 = items.slice(mid);
-
-  const renderCard = (item: MoodGenreItem) => (
-    <Pressable
-      key={item.id}
-      accessible
-      accessibilityRole="button"
-      accessibilityLabel={`Mood and Genre: ${item.title}. ${item.description}. ${item.trackCount} tracks available.`}
-      accessibilityHint="Explores tracks in this genre"
-      onPress={() => onSelect(item)}
-      style={[
-        styles.card,
-        {
-          backgroundColor: item.gradientColors[0],
-          borderColor: item.accentColor + '33', // 20% opacity border
-        },
-      ]}
-    >
-      {/* Accent corner dot indicator */}
-      <View style={[styles.accentDot, { backgroundColor: item.accentColor }]} />
-
-      <View style={styles.cardContent}>
-        <OTOText variant="caption" weight="bold" numberOfLines={1}>
-          {item.title}
-        </OTOText>
-        <OTOText variant="meta" colorRole="secondary" numberOfLines={1}>
-          {item.trackCount} tracks
-        </OTOText>
-      </View>
-    </Pressable>
-  );
 
   return (
     <View style={styles.container}>
       <View style={styles.sectionHeader}>
         <OTOText variant="title" weight="bold">
-          Moods & Genres
+          Moods &amp; Genres
         </OTOText>
         <OTOText variant="caption" colorRole="secondary">
           Explore by sound textures and sonic frequencies
@@ -72,10 +97,19 @@ export function MoodsGenresSection({
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        decelerationRate="fast"
       >
         <View style={styles.gridColumn}>
-          <View style={styles.rowWrapper}>{row1.map(renderCard)}</View>
-          <View style={styles.rowWrapper}>{row2.map(renderCard)}</View>
+          <View style={styles.rowWrapper}>
+            {row1.map((item) => (
+              <MoodCard key={item.id} item={item} onSelect={onSelect} />
+            ))}
+          </View>
+          <View style={styles.rowWrapper}>
+            {row2.map((item) => (
+              <MoodCard key={item.id} item={item} onSelect={onSelect} />
+            ))}
+          </View>
         </View>
       </ScrollView>
     </View>
@@ -103,7 +137,7 @@ const styles = StyleSheet.create({
   },
   card: {
     width: 140,
-    height: 58,
+    height: 60,
     borderRadius: radius.md,
     borderWidth: 1,
     paddingHorizontal: space[2],
@@ -113,8 +147,8 @@ const styles = StyleSheet.create({
   },
   accentDot: {
     position: 'absolute',
-    top: 6,
-    right: 8,
+    top: 7,
+    right: 9,
     width: 6,
     height: 6,
     borderRadius: 3,

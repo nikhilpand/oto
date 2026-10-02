@@ -78,22 +78,22 @@ export function OTODynamicBackground({
     };
   }, [width, height, time, paletteUniforms]);
 
-  // Tier 0: Flat palette color
+  // Tier 0: Flat palette color (semi-transparent so artwork shows through)
   if (effectiveTier === QualityTier.Minimal) {
     return (
       <View
         style={[
           StyleSheet.absoluteFill,
-          { backgroundColor: activePalette.dominant || color.bg.base },
+          { backgroundColor: activePalette.dominant || color.bg.base, opacity: 0.45 },
         ]}
       />
     );
   }
 
-  // Tier 1: Static linear gradient
+  // Tier 1: Static linear gradient (semi-transparent so artwork shows through)
   if (effectiveTier === QualityTier.Lite) {
     return (
-      <View style={[StyleSheet.absoluteFill, { backgroundColor: color.bg.base }]}>
+      <View style={[StyleSheet.absoluteFill, { opacity: 0.5 }]}>
         <Canvas style={StyleSheet.absoluteFill}>
           <Fill>
             <LinearGradient
@@ -107,10 +107,10 @@ export function OTODynamicBackground({
     );
   }
 
-  // Tier 2: Static Skia radial gradient (or Tier 3 fallback if shader unavailable)
+  // Tier 2: Static Skia radial gradient (semi-transparent so artwork shows through)
   if (effectiveTier === QualityTier.Balanced || !atmosphereEffect) {
     return (
-      <View style={[StyleSheet.absoluteFill, { backgroundColor: color.bg.base }]}>
+      <View style={[StyleSheet.absoluteFill, { opacity: 0.55 }]}>
         <Canvas style={StyleSheet.absoluteFill}>
           <Fill>
             <RadialGradient
@@ -129,9 +129,9 @@ export function OTODynamicBackground({
     );
   }
 
-  // Tier 3: Animated Skia atmosphere runtime shader
+  // Tier 3: Animated Skia atmosphere runtime shader (semi-transparent so artwork shows through)
   return (
-    <View style={[StyleSheet.absoluteFill, { backgroundColor: color.bg.base }]}>
+    <View style={[StyleSheet.absoluteFill, { opacity: 0.6 }]}>
       <Canvas style={StyleSheet.absoluteFill}>
         <Fill>
           <Shader source={atmosphereEffect} uniforms={uniforms} />

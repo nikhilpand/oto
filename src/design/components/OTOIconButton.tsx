@@ -9,19 +9,13 @@ import {
   StyleProp,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
-} from 'react-native-reanimated';
-import { color, spring, touchTarget } from '@/design/tokens';
-import { useReducedMotion } from '@/design/hooks/useReducedMotion';
-
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+import { color, touchTarget } from '@/design/tokens';
 
 export interface OTOIconButtonProps extends Omit<PressableProps, 'style'> {
   icon: React.ReactNode;
   accessibilityLabel: string;
+  /** Optional hint read after label by screen readers. Describe the outcome. */
+  accessibilityHint?: string;
   size?: number;
   haptic?: boolean;
   disabled?: boolean;
@@ -42,6 +36,7 @@ const MIN_TOUCH_SIZE = Platform.select({
 export function OTOIconButton({
   icon,
   accessibilityLabel,
+  accessibilityHint,
   size = MIN_TOUCH_SIZE,
   haptic = true,
   disabled = false,
@@ -52,33 +47,6 @@ export function OTOIconButton({
   style,
   ...rest
 }: OTOIconButtonProps) {
-  const reducedMotion = useReducedMotion();
-  const scale = useSharedValue(1);
-
-  const handlePressIn = useCallback(
-    (e: any) => {
-      'worklet';
-      if (!disabled && !loading) {
-        if (!reducedMotion) {
-          scale.value = withSpring(0.9, spring.spatial.playful);
-        }
-      }
-      onPressIn?.(e);
-    },
-    [disabled, loading, reducedMotion, onPressIn, scale]
-  );
-
-  const handlePressOut = useCallback(
-    (e: any) => {
-      'worklet';
-      if (!reducedMotion) {
-        scale.value = withSpring(1, spring.spatial.playful);
-      }
-      onPressOut?.(e);
-    },
-    [reducedMotion, onPressOut, scale]
-  );
-
   const handlePress = useCallback(
     (e: any) => {
       if (disabled || loading) return;
@@ -90,47 +58,33 @@ export function OTOIconButton({
     [disabled, loading, haptic, onPress]
   );
 
-  const animatedStyle = useAnimatedStyle(() => {
-    'worklet';
-    return {
-      transform: [{ scale: scale.value }],
-    };
-  });
-
   const buttonSize = Math.max(size, MIN_TOUCH_SIZE);
 
   return (
-    <AnimatedPressable
+    <Pressable
+      accessible
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
+      accessibilityHint={accessibilityHint}
       accessibilityState={{
         disabled: !!disabled,
         busy: !!loading,
       }}
       disabled={disabled || loading}
       onPress={handlePress}
-      onPressIn={handlePressIn}
-      onPressOut={handlePressOut}
-      style={[
+      onPressIn={onPressIn}
+      onPressOut={onPressOut}
+      style={({ pressed }) => [
         styles.base,
         {
           width: buttonSize,
           height: buttonSize,
-          opacity: disabled ? 0.32 : 1,
+          opacity: disabled ? 0.32 : pressed ? 0.65 : 1,
+          transform: [{ scale: pressed && !disabled && !loading ? 0.92 : 1 }],
         },
-        animatedStyle,
-        style,
+        style as ViewStyle,
       ]}
-      hitSlop={
-        buttonSize < MIN_TOUCH_SIZE
-          ? {
-              top: (MIN_TOUCH_SIZE - buttonSize) / 2,
-              bottom: (MIN_TOUCH_SIZE - buttonSize) / 2,
-              left: (MIN_TOUCH_SIZE - buttonSize) / 2,
-              right: (MIN_TOUCH_SIZE - buttonSize) / 2,
-            }
-          : undefined
-      }
+      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
       {...rest}
     >
       {loading ? (
@@ -138,7 +92,7 @@ export function OTOIconButton({
       ) : (
         icon
       )}
-    </AnimatedPressable>
+    </Pressable>
   );
 }
 

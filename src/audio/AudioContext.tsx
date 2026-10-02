@@ -1,9 +1,16 @@
 import React, { createContext, useContext, useEffect, useMemo } from 'react';
 import type { AudioEngine } from './AudioEngine';
-import { FakeAudioEngine } from './FakeAudioEngine';
+import { RealAudioEngine } from './RealAudioEngine';
 import { usePlaybackStore } from '../store/usePlaybackStore';
+import {
+  getGlobalAudioEngine,
+  setGlobalAudioEngine,
+} from './engineHolder';
+
+export { getGlobalAudioEngine, setGlobalAudioEngine };
 
 const AudioEngineContext = createContext<AudioEngine | null>(null);
+
 
 export interface AudioEngineProviderProps {
   engine?: AudioEngine;
@@ -21,10 +28,11 @@ export function AudioEngineProvider({
   engine: customEngine,
   children,
 }: AudioEngineProviderProps): React.JSX.Element {
-  const [defaultEngine] = React.useState<FakeAudioEngine>(() => new FakeAudioEngine());
+  const [defaultEngine] = React.useState<AudioEngine>(() => new RealAudioEngine());
   const activeEngine = customEngine ?? defaultEngine;
 
   useEffect(() => {
+    setGlobalAudioEngine(activeEngine);
     const unsubStatus = activeEngine.onStatusChange((status) => {
       const store = usePlaybackStore.getState();
       store.setStatus(status);

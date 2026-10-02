@@ -6,10 +6,10 @@
  */
 
 import React, { useCallback } from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
+import { View, StyleSheet, ScrollView, Pressable } from 'react-native';
 import Animated, { FadeInRight, useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
-import { Pressable } from 'react-native';
-import { color, space, radius, spring } from '@/design/tokens';
+import * as Haptics from 'expo-haptics';
+import { color, space, radius, spring, shadow } from '@/design/tokens';
 import { useReducedMotion } from '@/design/hooks/useReducedMotion';
 import { OTOText } from '@/design/components/OTOText';
 import { OTOArtwork } from '@/design/components/OTOArtwork';
@@ -39,6 +39,9 @@ export function ContinueListeningSection({
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        decelerationRate="fast"
+        snapToInterval={248 + 8}
+        snapToAlignment="start"
       >
         {items.map((item, idx) => (
           <ContinueListeningCard key={item.track.id} item={item} index={idx} onResume={onResume} />
@@ -79,7 +82,7 @@ function ContinueListeningCard({
         accessibilityRole="button"
         accessibilityLabel={`Resume ${item.track.title} by ${item.track.artist}. ${item.progressPercent}% completed.`}
         accessibilityHint="Resumes playback of this track"
-        onPress={() => onResume(item)}
+        onPress={() => { void Haptics.selectionAsync(); onResume(item); }}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
         style={styles.card}
@@ -126,8 +129,8 @@ const styles = StyleSheet.create({
     gap: space[2],
   },
   card: {
-    width: 236,
-    height: 74,
+    width: 248,
+    height: 76,
     backgroundColor: color.bg.s2,
     borderRadius: radius.md,
     borderWidth: 1,
@@ -137,11 +140,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: space[2],
     gap: space[2],
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 3,
+    ...shadow.card,
   },
   cardPressed: {
     opacity: 0.88,
@@ -152,11 +151,7 @@ const styles = StyleSheet.create({
     height: 54,
     borderRadius: radius.sm,
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 2,
+    ...shadow.card,
   },
   metaContainer: {
     flex: 1,

@@ -27,8 +27,7 @@ class MemoryStorage implements StorageBackend {
 function createBackend(): StorageBackend {
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { MMKV } = require('react-native-mmkv') as any;
+    const { MMKV } = require('react-native-mmkv') as { MMKV: new (config: { id: string }) => StorageBackend };
     return new MMKV({ id: 'oto-search' });
   } catch {
     return new MemoryStorage();

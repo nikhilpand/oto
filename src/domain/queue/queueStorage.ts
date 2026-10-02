@@ -72,6 +72,15 @@ export class QueueStorage {
         Array.isArray(parsed.priorityQueue) &&
         Array.isArray(parsed.standardQueue)
       ) {
+        // Discard legacy mock tracks (such as 't1' or 'Blinding Lights') from older dev builds
+        if (
+          parsed.currentTrack?.id === 't1' ||
+          parsed.currentTrack?.id?.startsWith('oto-') ||
+          parsed.currentTrack?.title === 'Blinding Lights'
+        ) {
+          this.clear();
+          return null;
+        }
         return parsed;
       }
       return null;

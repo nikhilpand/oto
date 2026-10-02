@@ -2,14 +2,17 @@ import React from 'react';
 import {
   View,
   StyleSheet,
+  Platform,
+  useWindowDimensions,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   useAnimatedStyle,
   interpolate,
   type SharedValue,
 } from 'react-native-reanimated';
-import { GestureDetector, type Gesture } from 'react-native-gesture-handler';
+import type { Gesture } from 'react-native-gesture-handler';
 import { color, space } from '@/design/tokens';
 import { usePlaybackStore } from '@/store/usePlaybackStore';
 import { OTODynamicBackground } from './OTODynamicBackground';
@@ -23,19 +26,23 @@ export interface OTONowPlayingShellProps {
 }
 
 /**
- * OTONowPlayingShell â€” Full-screen expandable container for the active player.
+ * OTONowPlayingShell — Full-screen expandable container for the active player.
  *
  * Driven by the single shared value `playerProgress` (0 = collapsed, 1 = full).
- * Contains the atmospheric liquid background (4 quality tiers) and wraps
- * the interactive Now Playing content hierarchy.
+ * Contains:
+ *   - Full-bleed blurred artwork background (BitChord-style)
+ *   - Dark scrim for text legibility
+ *   - Atmospheric Skia gradient overlay (4 quality tiers)
+ *   - Interactive Now Playing content hierarchy
  */
 export function OTONowPlayingShell({
   playerProgress,
   screenHeight,
-  panGesture,
+  panGesture: _panGesture,
   children,
 }: OTONowPlayingShellProps): React.JSX.Element | null {
   const insets = useSafeAreaInsets();
+  const { width, height } = useWindowDimensions();
   const currentTrack = usePlaybackStore((s) => s.currentTrack);
 
   const containerAnimatedStyle = useAnimatedStyle(() => {
@@ -53,7 +60,6 @@ export function OTONowPlayingShell({
     return {
       transform: [{ translateY }],
       opacity,
-      pointerEvents: playerProgress.value < 0.05 ? 'none' : 'auto',
     };
   });
 
@@ -61,7 +67,7 @@ export function OTONowPlayingShell({
     return null;
   }
 
-  const content = (
+  return (
     <Animated.View
       style={[
         styles.container,
@@ -73,21 +79,34 @@ export function OTONowPlayingShell({
       ]}
       accessible={false}
     >
-      {/* 1. Atmospheric liquid background layer (4 Quality Tiers) */}
-      <OTODynamicBackground />
+      {/* Layer 1: Full-bleed blurred artwork background */}
+      {currentTrack.artworkUrl ? (
+        <Image
+          source={{ uri: currentTrack.artworkUrl }}
+          style={[StyleSheet.absoluteFill, { width, height }]}
+          blurRadius={Platform.OS === 'android' ? 28 : 40}
+          contentFit="cover"
+          accessibilityIgnoresInvertColors
+          pointerEvents="none"
+        />
+      ) : (
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: color.bg.base }]} />
+      )}
 
-      {/* 2. Now Playing interactive content */}
+      {/* Layer 2: Dark scrim for legibility */}
+      <View style={styles.scrim} pointerEvents="none" />
+
+      {/* Layer 3: Atmospheric Skia gradient overlay (4 Quality Tiers) */}
+      <View style={StyleSheet.absoluteFill} pointerEvents="none">
+        <OTODynamicBackground />
+      </View>
+
+      {/* Layer 4: Now Playing interactive content */}
       <View style={styles.content}>
         {children}
       </View>
     </Animated.View>
   );
-
-  if (panGesture) {
-    return <GestureDetector gesture={panGesture}>{content}</GestureDetector>;
-  }
-
-  return content;
 }
 
 const styles = StyleSheet.create({
@@ -97,12 +116,15 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: color.bg.base,
     zIndex: 200,
     paddingHorizontal: space[5],
+    overflow: 'hidden',
+  },
+  scrim: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: 'rgba(0, 0, 0, 0.52)',
   },
   content: {
     flex: 1,
   },
 });
-

@@ -5,15 +5,22 @@
  * search pill trigger, and developer Storybook toggle.
  */
 
-import React from 'react';
+import React, { useCallback } from 'react';
 import { View, StyleSheet, Pressable, Platform } from 'react-native';
-import { color, space, radius, touchTarget } from '@/design/tokens';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+} from 'react-native-reanimated';
+import { color, space, radius, touchTarget, spring, type } from '@/design/tokens';
 import { OTOText } from '@/design/components/OTOText';
 import { OTOIconButton } from '@/design/components/OTOIconButton';
 import { SearchIcon, LibraryIcon } from '@/design/components/OTOIcon';
 
 export interface HomeHeaderProps {
   greeting: string;
+  /** Optional time-aware subtitle. Defaults to a generic music message. */
+  subtitle?: string;
   onSearchPress: () => void;
   onProfilePress?: () => void;
   onStorybookToggle?: () => void;
@@ -21,6 +28,7 @@ export interface HomeHeaderProps {
 
 export function HomeHeader({
   greeting,
+  subtitle = 'Soundtracks for your day',
   onSearchPress,
   onProfilePress,
   onStorybookToggle,
@@ -30,6 +38,23 @@ export function HomeHeader({
     default: touchTarget.android,
   });
 
+  const pillScale = useSharedValue(1);
+  const avatarScale = useSharedValue(1);
+
+  const pillStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: pillScale.value }],
+  }));
+  const avatarStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: avatarScale.value }],
+  }));
+
+  const handlePillPressIn = useCallback(() => {
+    pillScale.value = withSpring(0.97, spring.spatial.fast);
+  }, [pillScale]);
+  const handlePillPressOut = useCallback(() => {
+    pillScale.value = withSpring(1, spring.spatial.playful);
+  }, [pillScale]);
+
   return (
     <View style={styles.container}>
       <View style={styles.topRow}>
@@ -38,7 +63,7 @@ export function HomeHeader({
             {greeting}
           </OTOText>
           <OTOText variant="caption" colorRole="secondary">
-            Soundtracks for your evening
+            {subtitle}
           </OTOText>
         </View>
 
@@ -58,45 +83,44 @@ export function HomeHeader({
             accessibilityRole="button"
             accessibilityLabel="User profile settings"
             onPress={onProfilePress}
-            style={({ pressed }) => [
-              styles.avatarButton,
-              { minWidth: minTouch, minHeight: minTouch },
-              pressed && styles.avatarPressed,
-            ]}
+            onPressIn={() => { avatarScale.value = withSpring(0.9, spring.spatial.fast); }}
+            onPressOut={() => { avatarScale.value = withSpring(1, spring.spatial.playful); }}
+            style={[styles.avatarPressable, { minWidth: minTouch, minHeight: minTouch }]}
           >
-            <View style={styles.avatar}>
+            <Animated.View style={[styles.avatar, avatarStyle]}>
               <View style={styles.avatarInner}>
                 <OTOText variant="caption" weight="bold" style={styles.avatarText}>
                   O
                 </OTOText>
               </View>
-            </View>
+            </Animated.View>
           </Pressable>
         </View>
       </View>
 
-      {/* Instant Search Entry Trigger Pill with Glass Specular Rim */}
-      <Pressable
-        accessible
-        accessibilityRole="search"
-        accessibilityLabel="Search music catalog, artists, and songs"
-        accessibilityHint="Opens search screen"
-        onPress={onSearchPress}
-        style={({ pressed }) => [
-          styles.searchPill,
-          pressed && styles.searchPillPressed,
-        ]}
-      >
-        <SearchIcon size={18} color={color.text.secondary} />
-        <OTOText variant="body" colorRole="tertiary" style={styles.searchText}>
-          What do you want to play?
-        </OTOText>
-        <View style={styles.searchShortcutBadge}>
-          <OTOText variant="meta" colorRole="tertiary" style={styles.searchShortcutText}>
-            Search
+      {/* Instant Search Entry Trigger Pill with spring press scale */}
+      <Animated.View style={pillStyle}>
+        <Pressable
+          accessible
+          accessibilityRole="search"
+          accessibilityLabel="Search music catalog, artists, and songs"
+          accessibilityHint="Opens search screen"
+          onPress={onSearchPress}
+          onPressIn={handlePillPressIn}
+          onPressOut={handlePillPressOut}
+          style={styles.searchPill}
+        >
+          <SearchIcon size={18} color={color.text.secondary} />
+          <OTOText variant="body" colorRole="tertiary" style={styles.searchText}>
+            What do you want to play?
           </OTOText>
-        </View>
-      </Pressable>
+          <View style={styles.searchShortcutBadge}>
+            <OTOText variant="meta" colorRole="tertiary" style={styles.searchShortcutText}>
+              Search
+            </OTOText>
+          </View>
+        </Pressable>
+      </Animated.View>
     </View>
   );
 }
@@ -122,22 +146,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: space[1],
   },
-  avatarButton: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarPressed: {
-    opacity: 0.85,
-    transform: [{ scale: 0.95 }],
-  },
   avatar: {
     width: 38,
     height: 38,
     borderRadius: radius.full,
     backgroundColor: color.bg.s3,
     borderWidth: 1.5,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
-    borderTopColor: 'rgba(255, 255, 255, 0.32)',
+    borderColor: color.glass.highlight,
+    borderTopColor: color.text.disabled,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: color.accent.signature,
@@ -150,13 +166,13 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: 'rgba(229, 169, 60, 0.12)',
+    backgroundColor: color.bg.s3,
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarText: {
     color: color.accent.signature,
-    fontSize: 13,
+    fontSize: type.meta[0],
     fontWeight: '700',
   },
   searchPill: {
@@ -176,10 +192,6 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 3,
   },
-  searchPillPressed: {
-    opacity: 0.88,
-    transform: [{ scale: 0.99 }],
-  },
   searchText: {
     flex: 1,
   },
@@ -192,6 +204,10 @@ const styles = StyleSheet.create({
     borderColor: color.hairline,
   },
   searchShortcutText: {
-    fontSize: 11,
+    fontSize: type.caption[0],
+  },
+  avatarPressable: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

@@ -5,6 +5,8 @@ import {
   Easing,
   SharedValue,
 } from 'react-native-reanimated';
+import { InteractionManager } from 'react-native';
+import { Skia, AlphaType, ColorType } from '@shopify/react-native-skia';
 import { PaletteResult, PixelRgb, RgbaTuple } from '../color/types';
 import { getFallbackPalette, extractPaletteFromPixels } from '../color/extract';
 import { globalPaletteCache } from '../color/cache';
@@ -13,8 +15,16 @@ import { duration } from '../tokens';
 export interface PaletteContextValue {
   /** Discrete active palette for components that need standard hex strings */
   activePalette: PaletteResult;
-  /** Asynchronously extracts and applies palette with sub-millisecond cache lookups */
-  extractAndApplyPalette: (imageKey: string, pixels?: PixelRgb[]) => Promise<void>;
+  /**
+   * Asynchronously extracts and applies palette.
+   * - If `artworkUri` is provided: Skia off-thread pixel extraction runs.
+   * - If `pixels` is provided: CPU quantization runs.
+   * - If neither: falls back to cached result or default palette.
+   */
+  extractAndApplyPalette: (
+    imageKey: string,
+    pixelsOrUri?: PixelRgb[] | string
+  ) => Promise<void>;
   /** Reanimated Shared Value uniforms for direct UI-thread Skia canvas rendering (0 re-renders) */
   uniforms: {
     uDominant: SharedValue<RgbaTuple>;
@@ -28,6 +38,44 @@ export interface PaletteContextValue {
 const PaletteContext = createContext<PaletteContextValue | null>(null);
 
 const DEFAULT_PALETTE = getFallbackPalette();
+const DOWNSAMPLE = 64;
+
+/** Skia-based off-thread artwork downsampling → pixel array */
+async function extractPixelsViaSkia(uri: string): Promise<PixelRgb[] | null> {
+  try {
+    const data = await Skia.Data.fromURI(uri);
+    if (!data) return null;
+    const srcImage = Skia.Image.MakeImageFromEncoded(data);
+    if (!srcImage) return null;
+
+    const surface = Skia.Surface.Make(DOWNSAMPLE, DOWNSAMPLE);
+    if (!surface) return null;
+    const canvas = surface.getCanvas();
+    const paint = Skia.Paint();
+    const srcRect = Skia.XYWHRect(0, 0, srcImage.width(), srcImage.height());
+    const dstRect = Skia.XYWHRect(0, 0, DOWNSAMPLE, DOWNSAMPLE);
+    canvas.drawImageRect(srcImage, srcRect, dstRect, paint);
+    surface.flush();
+
+    const snapshot = surface.makeImageSnapshot();
+    const raw = snapshot.readPixels(0, 0, {
+      width: DOWNSAMPLE,
+      height: DOWNSAMPLE,
+      colorType: ColorType.RGBA_8888,
+      alphaType: AlphaType.Unpremul,
+    });
+    if (!raw) return null;
+
+    const bytes = new Uint8Array(raw.buffer);
+    const pixels: PixelRgb[] = [];
+    for (let i = 0; i < bytes.length; i += 4) {
+      pixels.push([bytes[i]!, bytes[i + 1]!, bytes[i + 2]!]);
+    }
+    return pixels;
+  } catch {
+    return null;
+  }
+}
 
 export function PaletteProvider({ children }: { children: React.ReactNode }) {
   const [activePalette, setActivePalette] = useState<PaletteResult>(DEFAULT_PALETTE);
@@ -50,43 +98,68 @@ export function PaletteProvider({ children }: { children: React.ReactNode }) {
     [uDominant, uSecondary, uAccent, uShadow, uHighlight]
   );
 
-  const extractAndApplyPalette = useCallback(
-    async (imageKey: string, pixels?: PixelRgb[]) => {
-      // 1. Check cache first (sub-millisecond <1ms lookup)
-      let resolvedPalette = globalPaletteCache.get(imageKey);
-
-      if (!resolvedPalette) {
-        if (pixels && pixels.length > 0) {
-          // Offload to background microtask to keep UI thread unblocked
-          resolvedPalette = await new Promise<PaletteResult>((resolve) => {
-            setTimeout(() => {
-              const extracted = extractPaletteFromPixels(pixels);
-              globalPaletteCache.set(imageKey, extracted);
-              resolve(extracted);
-            }, 0);
-          });
-        } else {
-          resolvedPalette = getFallbackPalette();
-          globalPaletteCache.set(imageKey, resolvedPalette);
-        }
-      }
-
-      // 2. Animate Reanimated shared values on UI thread over duration.environment (800ms)
+  const applyResult = useCallback(
+    (resolvedPalette: PaletteResult) => {
       const timingConfig = {
         duration: duration.environment,
         easing: Easing.bezier(0.25, 0.1, 0.25, 1),
       };
-
       uDominant.value = withTiming(resolvedPalette.uniforms.uDominant, timingConfig);
       uSecondary.value = withTiming(resolvedPalette.uniforms.uSecondary, timingConfig);
       uAccent.value = withTiming(resolvedPalette.uniforms.uAccent, timingConfig);
       uShadow.value = withTiming(resolvedPalette.uniforms.uShadow, timingConfig);
       uHighlight.value = withTiming(resolvedPalette.uniforms.uHighlight, timingConfig);
-
-      // 3. Update discrete React state once
       setActivePalette(resolvedPalette);
     },
     [uDominant, uSecondary, uAccent, uShadow, uHighlight]
+  );
+
+  const extractAndApplyPalette = useCallback(
+    async (imageKey: string, pixelsOrUri?: PixelRgb[] | string) => {
+      // 1. Cache hit — synchronous, <1ms
+      const cached = globalPaletteCache.get(imageKey);
+      if (cached) {
+        applyResult(cached);
+        return;
+      }
+
+      // 2. Cache miss
+      let resolvedPalette: PaletteResult;
+
+      if (Array.isArray(pixelsOrUri) && pixelsOrUri.length > 0) {
+        // Caller-provided pixel array (legacy path)
+        resolvedPalette = await new Promise<PaletteResult>((resolve) => {
+          const task = InteractionManager.runAfterInteractions(() => {
+            const extracted = extractPaletteFromPixels(pixelsOrUri as PixelRgb[]);
+            globalPaletteCache.set(imageKey, extracted);
+            resolve(extracted);
+          });
+          // No cancel needed — runs once
+          void task;
+        });
+      } else if (typeof pixelsOrUri === 'string' && pixelsOrUri.length > 0) {
+        // URI path — Skia off-thread extraction
+        await new Promise<void>((resolve) => {
+          const task = InteractionManager.runAfterInteractions(async () => {
+            const pixels = await extractPixelsViaSkia(pixelsOrUri);
+            resolvedPalette = pixels
+              ? extractPaletteFromPixels(pixels)
+              : getFallbackPalette();
+            globalPaletteCache.set(imageKey, resolvedPalette);
+            applyResult(resolvedPalette);
+            resolve();
+          });
+          void task;
+        });
+        return;
+      } else {
+        resolvedPalette = getFallbackPalette();
+        globalPaletteCache.set(imageKey, resolvedPalette);
+      }
+
+      applyResult(resolvedPalette);
+    },
+    [applyResult]
   );
 
   const contextValue = useMemo(

@@ -6,9 +6,14 @@
  */
 
 import React, { useCallback } from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
-import Animated, { FadeInDown, useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
-import { space, radius, spring } from '@/design/tokens';
+import { View, StyleSheet, ScrollView, Pressable } from 'react-native';
+import Animated, {
+  FadeInDown,
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+} from 'react-native-reanimated';
+import { color, space, radius, spring, shadow } from '@/design/tokens';
 import { useReducedMotion } from '@/design/hooks/useReducedMotion';
 import { OTOText } from '@/design/components/OTOText';
 import { OTOArtwork } from '@/design/components/OTOArtwork';
@@ -25,7 +30,6 @@ export function MadeForYouSection({
 }: MadeForYouSectionProps): React.JSX.Element | null {
   if (!items || items.length === 0) return null;
 
-
   return (
     <View style={styles.container}>
       <View style={styles.sectionHeader}>
@@ -41,6 +45,9 @@ export function MadeForYouSection({
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        decelerationRate="fast"
+        snapToInterval={162}
+        snapToAlignment="start"
       >
         {items.map((item, idx) => (
           <MadeForYouCard key={item.id} item={item} index={idx} onSelect={onSelect} />
@@ -67,11 +74,11 @@ function MadeForYouCard({
   }));
 
   const handlePressIn = useCallback(() => {
-    if (!reducedMotion) scale.value = withSpring(0.97, spring.spatial.fast);
+    if (!reducedMotion) scale.value = withSpring(0.96, spring.spatial.fast);
   }, [scale, reducedMotion]);
 
   const handlePressOut = useCallback(() => {
-    if (!reducedMotion) scale.value = withSpring(1, spring.spatial.fast);
+    if (!reducedMotion) scale.value = withSpring(1, spring.spatial.playful);
   }, [scale, reducedMotion]);
 
   return (
@@ -79,14 +86,14 @@ function MadeForYouCard({
       entering={reducedMotion ? undefined : FadeInDown.delay(index * 60).duration(400).springify()}
       style={[styles.card, cardStyle]}
     >
-      <Animated.View
+      <Pressable
         accessible
         accessibilityRole="button"
         accessibilityLabel={`${item.title}, ${item.subtitle}. Contains ${item.trackCount} tracks.`}
         accessibilityHint="Plays this playlist"
-        onTouchStart={handlePressIn}
-        onTouchEnd={() => { handlePressOut(); onSelect(item); }}
-        onTouchCancel={handlePressOut}
+        onPress={() => onSelect(item)}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
       >
         <View style={styles.artworkContainer}>
           <OTOArtwork
@@ -96,6 +103,8 @@ function MadeForYouCard({
             borderRadius={radius.md}
             alt={`${item.title} artwork`}
           />
+          {/* Gradient scrim for readability */}
+          <View style={styles.artworkScrim} />
           <View style={styles.trackCountBadge}>
             <OTOText variant="meta" weight="bold" colorRole="primary" style={styles.trackCountText}>
               {item.trackCount} TRACKS
@@ -110,7 +119,7 @@ function MadeForYouCard({
             {item.subtitle}
           </OTOText>
         </View>
-      </Animated.View>
+      </Pressable>
     </Animated.View>
   );
 }
@@ -127,6 +136,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: space[3],
     gap: space[3],
+    paddingRight: space[5],
   },
   card: {
     width: 150,
@@ -137,22 +147,27 @@ const styles = StyleSheet.create({
     height: 150,
     borderRadius: radius.md,
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
-    elevation: 5,
+    ...shadow.card,
+  },
+  artworkScrim: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 60,
+    backgroundColor: 'transparent',
+    // Simulated gradient via linear gradient overlay effect
   },
   trackCountBadge: {
     position: 'absolute',
     bottom: space[1],
     right: space[1],
-    backgroundColor: 'rgba(10, 11, 14, 0.75)',
+    backgroundColor: 'rgba(10, 11, 14, 0.80)',
     paddingHorizontal: space[1] + 2,
-    paddingVertical: 2,
+    paddingVertical: 3,
     borderRadius: radius.full,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.14)',
+    borderColor: color.hairline,
   },
   trackCountText: {
     fontSize: 9,
@@ -160,6 +175,7 @@ const styles = StyleSheet.create({
   },
   infoContainer: {
     gap: 2,
-    marginTop: 2,
+    marginTop: 4,
+    paddingHorizontal: 2,
   },
 });

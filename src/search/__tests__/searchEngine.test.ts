@@ -31,10 +31,10 @@ describe('searchEngine.query', () => {
 
   it('finds tracks by title', () => {
     const token = nextSequenceToken();
-    const result = query('Blinding', token);
+    const result = query('Kesariya', token);
     expect(result).not.toBeNull();
     expect(result!.tracks.length).toBeGreaterThan(0);
-    expect(result!.tracks[0]!.title).toContain('Blinding');
+    expect(result!.tracks[0]!.title).toContain('Kesariya');
   });
 
   it('finds artists by name', () => {

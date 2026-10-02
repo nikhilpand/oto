@@ -1,4 +1,4 @@
-import { useMemo, useEffect } from 'react';
+import { useMemo, useEffect, useState, useCallback } from 'react';
 import {
   View,
   StyleSheet,
@@ -9,7 +9,7 @@ import Animated, {
   useAnimatedStyle,
   interpolate,
 } from 'react-native-reanimated';
-import { space, radius } from '@/design/tokens';
+import { space, radius, TAB_BAR_HEIGHT } from '@/design/tokens';
 import { OTOArtwork } from '@/design/components/OTOArtwork';
 import { usePalette } from '@/design/context/PaletteContext';
 import { usePlaybackStore } from '@/store/usePlaybackStore';
@@ -33,22 +33,23 @@ export interface PlayerOverlayProps {
  * between the floating Mini Player and the full Now Playing screen.
  */
 export function PlayerOverlay({
-  tabBarHeight = 56,
+  tabBarHeight,
 }: PlayerOverlayProps): React.JSX.Element | null {
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const insets = useSafeAreaInsets();
+  const resolvedTabBarHeight = tabBarHeight ?? TAB_BAR_HEIGHT + insets.bottom;
   const isReducedMotion = useReducedMotion();
   const { extractAndApplyPalette } = usePalette();
 
   const currentTrack = usePlaybackStore((s) => s.currentTrack);
   const engine = useAudioEngine();
 
-  // Sync atmosphere palette whenever track changes
+  // Sync atmosphere palette whenever track changes — pass artworkUrl for Skia extraction
   useEffect(() => {
     if (currentTrack?.id) {
-      void extractAndApplyPalette(currentTrack.id);
+      void extractAndApplyPalette(currentTrack.id, currentTrack.artworkUrl ?? undefined);
     }
-  }, [currentTrack?.id, extractAndApplyPalette]);
+  }, [currentTrack?.id, currentTrack?.artworkUrl, extractAndApplyPalette]);
 
   const {
     playerProgress,
@@ -62,9 +63,21 @@ export function PlayerOverlay({
     currentTrack?.durationMs ?? 0
   );
 
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  const handleExpand = useCallback(() => {
+    setIsExpanded(true);
+    expand();
+  }, [expand]);
+
+  const handleCollapse = useCallback(() => {
+    setIsExpanded(false);
+    collapse();
+  }, [collapse]);
+
   // Compute precise spatial bounds for continuous artwork travel
   const miniRect: Rect = useMemo(() => {
-    const miniPlayerBottom = tabBarHeight + space[2];
+    const miniPlayerBottom = resolvedTabBarHeight + space[2];
     const miniPlayerHeight = 58;
     return {
       x: space[3] + space[3], // outer margin + inner padding
@@ -72,7 +85,7 @@ export function PlayerOverlay({
       width: 44,
       height: 44,
     };
-  }, [screenHeight, tabBarHeight]);
+  }, [screenHeight, resolvedTabBarHeight]);
 
   const fullRect: Rect = useMemo(() => {
     const fullSize = screenWidth - space[5] * 2;
@@ -88,16 +101,13 @@ export function PlayerOverlay({
   // Continuous traveling artwork animated style
   const travelingArtworkStyle = useAnimatedStyle(() => {
     if (isReducedMotion) {
-      // Reduced motion: crossfade without spatial travel
-      const opacity = interpolate(playerProgress.value, [0, 0.4, 0.6, 1], [0, 0, 1, 1]);
       return {
         position: 'absolute',
         left: fullRect.x,
         top: fullRect.y,
         width: fullRect.width,
         height: fullRect.height,
-        opacity,
-        borderRadius: radius.lg,
+        opacity: 0,
       };
     }
 
@@ -112,10 +122,7 @@ export function PlayerOverlay({
       [radius.sm, radius.lg]
     );
 
-    // Visible only during transition (0.02 to 0.98)
-    // When fully collapsed (0), mini player displays artwork.
-    // When fully expanded (1), now playing container displays artwork with pause-scale.
-    const isTransitioning = playerProgress.value > 0.01 && playerProgress.value < 0.99;
+    const isTransitioning = playerProgress.value > 0.02 && playerProgress.value < 0.98;
     const opacity = interpolate(playerProgress.value, [0, 0.04, 0.96, 1], [0, 1, 1, 0]);
 
     return {
@@ -125,9 +132,8 @@ export function PlayerOverlay({
       width: currentBounds.width,
       height: currentBounds.height,
       borderRadius,
-      opacity,
-      zIndex: 250,
-      display: isTransitioning ? 'flex' : 'none',
+      opacity: isTransitioning ? opacity : 0,
+      zIndex: isTransitioning ? 250 : -10,
     };
   });
 
@@ -137,29 +143,39 @@ export function PlayerOverlay({
 
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
-      {/* 1. Mini Player (Fades out when expanding) */}
-      <OTOMiniPlayer
-        playerProgress={playerProgress}
-        onExpand={expand}
-        tabBarHeight={tabBarHeight}
-      />
-
-      {/* 2. Full-Screen Now Playing Shell (Translates upward, catches pan down) */}
-      <OTONowPlayingShell
-        playerProgress={playerProgress}
-        onCollapse={collapse}
-        screenHeight={screenHeight}
-        panGesture={panGesture}
+      {/* 1. Mini Player (Active only when collapsed) */}
+      <View
+        style={StyleSheet.absoluteFill}
+        pointerEvents={isExpanded ? 'none' : 'box-none'}
       >
-        <OTONowPlayingContent
-          onCollapse={collapse}
-          artworkSize={fullRect.width}
-          progress={progress}
-          positionMs={positionMs}
+        <OTOMiniPlayer
+          playerProgress={playerProgress}
+          onExpand={handleExpand}
+          tabBarHeight={resolvedTabBarHeight}
         />
-      </OTONowPlayingShell>
+      </View>
 
-      {/* 3. Continuous Traveling Artwork Layer (touches pass through) */}
+      {/* 2. Full-Screen Now Playing Shell (Active only when expanded) */}
+      <View
+        style={StyleSheet.absoluteFill}
+        pointerEvents={isExpanded ? 'box-none' : 'none'}
+      >
+        <OTONowPlayingShell
+          playerProgress={playerProgress}
+          onCollapse={handleCollapse}
+          screenHeight={screenHeight}
+          panGesture={panGesture}
+        >
+          <OTONowPlayingContent
+            onCollapse={handleCollapse}
+            artworkSize={fullRect.width}
+            progress={progress}
+            positionMs={positionMs}
+          />
+        </OTONowPlayingShell>
+      </View>
+
+      {/* 3. Continuous Traveling Artwork Layer (touches pass through, zero elevation when idle) */}
       <Animated.View
         pointerEvents="none"
         style={[travelingArtworkStyle, styles.travelingArtwork]}
@@ -179,10 +195,5 @@ export function PlayerOverlay({
 const styles = StyleSheet.create({
   travelingArtwork: {
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 16 },
-    shadowOpacity: 0.45,
-    shadowRadius: 24,
-    elevation: 12,
   },
 });

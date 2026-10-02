@@ -30,6 +30,7 @@ export class FakeAudioEngine implements AudioEngine {
   private repeatMode: RepeatMode = 'off';
   private shuffleEnabled = false;
   private crossfadeDurationMs = 3000;
+  private volume = 1.0;
 
   private timer: ReturnType<typeof setInterval> | null = null;
   private lastTickTimestamp = 0;
@@ -140,6 +141,14 @@ export class FakeAudioEngine implements AudioEngine {
 
   async setCrossfadeDuration(ms: number): Promise<void> {
     this.crossfadeDurationMs = Math.max(0, Math.min(12000, ms));
+  }
+
+  async setVolume(volume: number): Promise<void> {
+    this.volume = Math.max(0, Math.min(1, volume));
+  }
+
+  getVolume(): number {
+    return this.volume;
   }
 
   // ─── Getters ────────────────────────────────────────────────────────

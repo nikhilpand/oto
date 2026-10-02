@@ -181,3 +181,52 @@ export function hexToRgbaTuple(hex: string, alpha = 1.0): RgbaTuple {
   const [r, g, b] = hexToRgb(hex);
   return [r / 255, g / 255, b / 255, alpha];
 }
+
+// ─── Status Bar & Scrim Contrast Adaptation ───────────────────────────
+
+export const PLAYER_STATUS_SCRIM_MIN_ALPHA = 0.16;
+export const PLAYER_STATUS_SCRIM_MAX_ALPHA = 0.65;
+
+/**
+ * Maps artwork linear luminance to top scrim opacity to keep white status bar
+ * icons legible over light album covers while staying subtle on dark ones.
+ *
+ * @param artworkLuminance Relative luminance in [0, 1] (or null for default dark base)
+ * @returns Scrim alpha in [0.16, 0.65]
+ * @see BitChord/app/src/test/java/com/music/bitchord/ui/theme/StatusBarContrastTest.kt
+ */
+export function topBandScrimAlpha(artworkLuminance?: number | null): number {
+  const luminance = Math.max(0, Math.min(1, artworkLuminance ?? 0));
+  return (
+    PLAYER_STATUS_SCRIM_MIN_ALPHA +
+    (PLAYER_STATUS_SCRIM_MAX_ALPHA - PLAYER_STATUS_SCRIM_MIN_ALPHA) * luminance
+  );
+}
+
+/**
+ * Computes average WCAG relative luminance across a collection of RGB pixels
+ * in linear light (never gamma-encoded sRGB).
+ *
+ * @param pixels Array of [r, g, b] tuples or 0xAARRGGBB integer values
+ * @returns Average linear luminance in [0, 1]
+ */
+export function averageRelativeLuminance(
+  pixels: ([number, number, number] | number)[]
+): number {
+  if (!pixels || pixels.length === 0) return 0;
+
+  let sum = 0;
+  for (let i = 0; i < pixels.length; i++) {
+    const p = pixels[i];
+    if (Array.isArray(p)) {
+      sum += wcagLuminance(p[0], p[1], p[2]);
+    } else if (typeof p === 'number') {
+      const r = (p >> 16) & 0xff;
+      const g = (p >> 8) & 0xff;
+      const b = p & 0xff;
+      sum += wcagLuminance(r, g, b);
+    }
+  }
+
+  return sum / pixels.length;
+}

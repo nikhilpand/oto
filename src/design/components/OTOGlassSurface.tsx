@@ -88,7 +88,7 @@ export function OTOGlassSurface({
       <BlurView
         intensity={55}
         tint="dark"
-        experimentalBlurMethod="dimezisBlurView"
+        blurMethod="none"
         style={[containerStyle, highlightBorder, style]}
         {...(rest as object)}
       >

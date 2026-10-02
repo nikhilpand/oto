@@ -24,7 +24,7 @@ const t = (id: string, title: string, artist: string, album: string, durationMs:
 });
 
 export const CATALOG_TRACKS: Track[] = [
-  t('t1',  'Blinding Lights',    'The Weeknd',     'After Hours',                200040),
+  t('t1',  'Kesariya',           'Arijit Singh',   'Brahmastra',                 268000),
   t('t2',  'Save Your Tears',    'The Weeknd',     'After Hours',                215640),
   t('t3',  'Starboy',            'The Weeknd',     'Starboy',                    230400),
   t('t4',  'As It Was',          'Harry Styles',   "Harry's House",              167360),

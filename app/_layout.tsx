@@ -2,17 +2,20 @@ import { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, LogBox } from 'react-native';
 import { color } from '@/design/tokens';
 import { ThemeProvider } from '@/design/context/ThemeContext';
 import { PaletteProvider } from '@/design/context/PaletteContext';
 import { AudioEngineProvider } from '@/audio/AudioContext';
 import { PlayerOverlay } from '@/player/components/PlayerOverlay';
 import { usePlaybackStore } from '@/store/usePlaybackStore';
-import mockCatalog from '@/mock/mockCatalog.json';
-import { Track } from '@/domain/types';
-
 import { useQueueStore } from '@/store/useQueueStore';
+import { QualityTierProvider } from '@/design/hooks/useQualityTier';
+import { ScrollOffsetProvider } from '@/design/context/ScrollOffsetContext';
+import { useDownloadStore } from '@/downloads/DownloadStore';
+
+// Suppress yellow/red debug toast overlays from obstructing player touch targets
+LogBox.ignoreAllLogs(true);
 
 /**
  * Root layout — wraps the entire app in GestureHandlerRootView
@@ -25,29 +28,34 @@ export default function RootLayout() {
     const playbackStore = usePlaybackStore.getState();
     const queueStore = useQueueStore.getState();
 
-    if (!queueStore.currentTrack && mockCatalog.tracks.length > 0) {
-      playbackStore.setQueue(mockCatalog.tracks as Track[], 0);
-    } else if (queueStore.currentTrack && !playbackStore.currentTrack) {
+    // Init download manifest DB
+    useDownloadStore.getState().init();
+
+    if (queueStore.currentTrack && !playbackStore.currentTrack) {
       playbackStore.setTrack(queueStore.currentTrack);
     }
   }, []);
   return (
     <GestureHandlerRootView style={styles.root}>
-      <ThemeProvider>
-        <PaletteProvider>
-          <AudioEngineProvider>
-            <StatusBar style="light" />
-            <Stack
-              screenOptions={{
-                headerShown: false,
-                contentStyle: { backgroundColor: color.bg.base },
-                animation: 'fade',
-              }}
-            />
-            <PlayerOverlay />
-          </AudioEngineProvider>
-        </PaletteProvider>
-      </ThemeProvider>
+      <QualityTierProvider>
+        <ScrollOffsetProvider>
+          <ThemeProvider>
+            <PaletteProvider>
+              <AudioEngineProvider>
+                <StatusBar style="light" />
+                <Stack
+                  screenOptions={{
+                    headerShown: false,
+                    contentStyle: { backgroundColor: color.bg.base },
+                    animation: 'fade',
+                  }}
+                />
+                <PlayerOverlay />
+              </AudioEngineProvider>
+            </PaletteProvider>
+          </ThemeProvider>
+        </ScrollOffsetProvider>
+      </QualityTierProvider>
     </GestureHandlerRootView>
   );
 }

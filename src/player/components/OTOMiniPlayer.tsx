@@ -11,15 +11,16 @@ import Animated, {
   type SharedValue,
   runOnJS,
   SlideInDown,
+  withSpring,
+  useSharedValue,
 } from 'react-native-reanimated';
 import { GestureDetector, Gesture } from 'react-native-gesture-handler';
 import * as Haptics from 'expo-haptics';
-import { color, space, radius, touchTarget } from '@/design/tokens';
+import { color, space, radius, touchTarget, shadow, spring } from '@/design/tokens';
 import { OTOGlassSurface } from '@/design/components/OTOGlassSurface';
 import { OTOText } from '@/design/components/OTOText';
 import { OTOArtwork } from '@/design/components/OTOArtwork';
-import { OTOIconButton } from '@/design/components/OTOIconButton';
-import { PlayIcon, PauseIcon } from '@/design/components/OTOIcon';
+import { PlayIcon, PauseIcon, SkipForwardIcon } from '@/design/components/OTOIcon';
 import { usePlaybackStore } from '@/store/usePlaybackStore';
 import { useAudioEngine } from '@/audio/AudioContext';
 import { usePlayheadProgress } from '@/audio/usePlayheadProgress';
@@ -36,8 +37,9 @@ export interface OTOMiniPlayerProps {
  * - Artwork: 44x44 rounded thumbnail.
  * - Title & artist with typography tokens.
  * - Play/Pause transport toggle with haptics.
+ * - Skip-next button for quick browsing.
  * - 120Hz Reanimated UI-thread progress line.
- * - Swipe left/right skips track; swipe up or tap expands to full player.
+ * - Swipe left skips track; swipe up or tap expands to full player.
  */
 export function OTOMiniPlayer({
   playerProgress,
@@ -49,7 +51,6 @@ export function OTOMiniPlayer({
   const engine = useAudioEngine();
 
   // A11y: coarse progress percent (0–100) updated at ~4Hz from native ticks
-  // Not driven by the 120Hz frame loop — only updates when position meaningfully changes.
   const [a11yPercent, setA11yPercent] = useState(0);
   const lastReportedPercent = useRef(0);
 
@@ -67,7 +68,6 @@ export function OTOMiniPlayer({
     }
   }, []);
 
-  // Subscribe to the engine position ticks (same ~4Hz feed as the calibration)
   React.useEffect(() => {
     if (!currentTrack?.durationMs) return;
     const dur = currentTrack.durationMs;
@@ -96,15 +96,27 @@ export function OTOMiniPlayer({
     void engine.skipToPrevious();
   }, [engine]);
 
+  // Skip-next button spring scale animation
+  const skipScale = useSharedValue(1);
+  const skipStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: skipScale.value }],
+  }));
+
+  // Play/pause button spring scale animation
+  const playScale = useSharedValue(1);
+  const playButtonStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: playScale.value }],
+  }));
+
   // Gestures: horizontal swipe skips track, vertical swipe up or tap expands
   const panGesture = Gesture.Pan()
     .onEnd((event) => {
       'worklet';
       if (event.translationY < -30) {
         runOnJS(onExpand)();
-      } else if (event.translationX < -40) {
+      } else if (event.translationX < -50) {
         runOnJS(handleSkipNext)();
-      } else if (event.translationX > 40) {
+      } else if (event.translationX > 50) {
         runOnJS(handleSkipPrev)();
       }
     });
@@ -123,7 +135,6 @@ export function OTOMiniPlayer({
     return {
       opacity,
       transform: [{ translateY }],
-      pointerEvents: playerProgress.value > 0.15 ? 'none' : 'auto',
     };
   });
 
@@ -148,33 +159,35 @@ export function OTOMiniPlayer({
         containerAnimatedStyle,
       ]}
     >
-      <GestureDetector gesture={composedGesture}>
-        <Pressable
+      <OTOGlassSurface borderRadius={radius.xl} style={styles.glassContainer}>
+        {/* Top edge 120Hz progress line */}
+        <View
+          style={styles.progressTrack}
           accessible
-          accessibilityRole="button"
-          accessibilityLabel={accessibilityLabel}
-          accessibilityHint="Expands the full-screen player"
-          onPress={onExpand}
+          accessibilityRole="progressbar"
+          accessibilityLabel={`Playback progress: ${a11yPercent}%`}
+          accessibilityValue={{ min: 0, max: 100, now: a11yPercent }}
         >
-          <OTOGlassSurface borderRadius={radius.md} style={styles.glassContainer}>
-            {/* Top edge 120Hz progress line */}
-            <View
-              style={styles.progressTrack}
-              accessible
-              accessibilityRole="progressbar"
-              accessibilityLabel={`Playback progress: ${a11yPercent}%`}
-              accessibilityValue={{ min: 0, max: 100, now: a11yPercent }}
-            >
-              <Animated.View style={[styles.progressFill, progressBarAnimatedStyle]} />
-            </View>
+          <Animated.View style={[styles.progressFill, progressBarAnimatedStyle]} />
+        </View>
 
-            <View style={styles.contentRow}>
-              {/* 44x44 Artwork */}
+        <View style={styles.contentRow}>
+          {/* Tap / swipe gesture on artwork & metadata to expand */}
+          <GestureDetector gesture={composedGesture}>
+            <Pressable
+              accessible
+              accessibilityRole="button"
+              accessibilityLabel={accessibilityLabel}
+              accessibilityHint="Expands the full-screen player"
+              onPress={onExpand}
+              style={styles.expandArea}
+            >
+              {/* 44x44 Artwork with subtle shadow */}
               <View style={styles.artworkContainer}>
                 <OTOArtwork
                   uri={currentTrack.artworkUrl}
                   thumbhash={currentTrack.thumbhash}
-                  size={44}
+                  size={40}
                   borderRadius={radius.sm}
                   alt={`${currentTrack.title} cover art`}
                 />
@@ -191,27 +204,62 @@ export function OTOMiniPlayer({
                   {currentTrack.title}
                 </OTOText>
                 <OTOText
-                  variant="caption"
+                  variant="meta"
                   numberOfLines={1}
                   colorRole="secondary"
                 >
                   {currentTrack.artist}
                 </OTOText>
               </View>
+            </Pressable>
+          </GestureDetector>
 
-              {/* Play/Pause Button */}
-              <View style={styles.controlsContainer}>
-                <OTOIconButton
-                  icon={isPlaying ? <PauseIcon /> : <PlayIcon />}
-                  accessibilityLabel={isPlaying ? 'Pause' : 'Play'}
-                  size={Platform.select({ ios: touchTarget.ios, default: touchTarget.android })}
-                  onPress={handleTogglePlay}
-                />
-              </View>
-            </View>
-          </OTOGlassSurface>
-        </Pressable>
-      </GestureDetector>
+          {/* Transport Controls — fully isolated from onExpand */}
+          <View style={styles.controlsContainer}>
+            {/* Play/Pause */}
+            <Animated.View style={playButtonStyle}>
+              <Pressable
+                accessible
+                accessibilityRole="button"
+                accessibilityLabel={isPlaying ? 'Pause' : 'Play'}
+                accessibilityHint={isPlaying ? 'Pauses current track' : 'Resumes current track'}
+                onPress={handleTogglePlay}
+                onPressIn={() => { playScale.value = withSpring(0.88, spring.spatial.fast); }}
+                onPressOut={() => { playScale.value = withSpring(1, spring.spatial.playful); }}
+                style={styles.playPauseButton}
+              >
+                {isPlaying ? (
+                  <PauseIcon size={18} color={color.text.primary} />
+                ) : (
+                  <PlayIcon size={18} color={color.text.primary} focused />
+                )}
+              </Pressable>
+            </Animated.View>
+
+            {/* Skip Next */}
+            <Animated.View style={skipStyle}>
+              <Pressable
+                accessible
+                accessibilityRole="button"
+                accessibilityLabel="Next track"
+                onPress={handleSkipNext}
+                onPressIn={() => {
+                  skipScale.value = withSpring(0.88, spring.spatial.fast);
+                }}
+                onPressOut={() => {
+                  skipScale.value = withSpring(1, spring.spatial.playful);
+                }}
+                style={({ pressed }) => [
+                  styles.skipButton,
+                  pressed && styles.buttonPressed,
+                ]}
+              >
+                <SkipForwardIcon size={18} color={color.text.secondary} />
+              </Pressable>
+            </Animated.View>
+          </View>
+        </View>
+      </OTOGlassSurface>
     </Animated.View>
   );
 }
@@ -224,8 +272,10 @@ const styles = StyleSheet.create({
     zIndex: 100,
   },
   glassContainer: {
-    height: 58,
+    height: 62,
     justifyContent: 'center',
+    backgroundColor: color.glass.solidFallback,
+    ...shadow.sheet,
   },
   progressTrack: {
     position: 'absolute',
@@ -234,6 +284,8 @@ const styles = StyleSheet.create({
     right: 0,
     height: 2,
     backgroundColor: color.bg.s3,
+    borderTopLeftRadius: radius.xl,
+    borderTopRightRadius: radius.xl,
     overflow: 'hidden',
   },
   progressFill: {
@@ -246,21 +298,49 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: space[3],
+    gap: space[2],
+  },
+  expandArea: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: space[3],
+    paddingVertical: space[2],
   },
   artworkContainer: {
-    width: 44,
-    height: 44,
+    width: 40,
+    height: 40,
     borderRadius: radius.sm,
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
   },
   metadataContainer: {
     flex: 1,
     justifyContent: 'center',
-    gap: 2,
+    gap: 1,
   },
   controlsContainer: {
-    justifyContent: 'center',
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: space[1],
+  },
+  playPauseButton: {
+    width: Platform.select({ ios: touchTarget.ios, default: touchTarget.android }),
+    height: Platform.select({ ios: touchTarget.ios, default: touchTarget.android }),
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  skipButton: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  buttonPressed: {
+    opacity: 0.6,
   },
 });

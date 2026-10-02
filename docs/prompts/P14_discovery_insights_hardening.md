@@ -20,7 +20,7 @@ Build the final secondary screens and execute a comprehensive production hardeni
    - Full accessible text alternatives for every chart.
 3. Settings Screen:
    - Playback: Crossfade duration, audio quality per network.
-   - Appearance: Quality Tier override (Auto/3/2/1/0), Reduce Motion, Reduce Blur, Dynamic Colors, Visualizer toggle.
+   - Appearance: Quality Tier override (Auto/3/2/1/0), Reduce Motion, Reduce Blur, Dynamic Colors, .
    - Storage & Cache: Clear audio cache, view storage usage.
    - About & Licenses.
 4. Hardening & Verification Pass:

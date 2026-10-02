@@ -26,7 +26,7 @@ export function SearchEmptyState({ mode, query, onSuggestionPress }: Props) {
             No results for
           </OTOText>
           <OTOText variant="body" customColor={color.text.secondary} style={styles.noResultsQuery} numberOfLines={2}>
-            "{query}"
+            {`"${query}"`}
           </OTOText>
           <OTOText variant="meta" customColor={color.text.tertiary} style={styles.noResultsHint}>
             Check your spelling or try a different term.

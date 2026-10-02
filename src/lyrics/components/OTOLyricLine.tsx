@@ -51,8 +51,28 @@ const LyricWordView = memo(function LyricWordView({
     };
   });
 
+  // Apple-like vertical word lift on active sung word
+  const animatedLiftStyle = useAnimatedStyle(() => {
+    'worklet';
+    if (!isActiveLine) {
+      return { transform: [{ translateY: 0 }] };
+    }
+    const pos = positionMs.value;
+    const riseMs = 250;
+    if (pos <= word.startMs - riseMs || pos >= word.endMs + riseMs) {
+      return { transform: [{ translateY: 0 }] };
+    }
+    const rising = Math.max(0, Math.min(1, (pos - word.startMs) / riseMs));
+    const falling = Math.max(0, Math.min(1, 1 - (pos - word.endMs) / riseMs));
+    const factor = Math.min(rising, falling);
+    const lift = factor * factor * (3 - 2 * factor);
+    return {
+      transform: [{ translateY: -3.5 * lift }],
+    };
+  });
+
   return (
-    <View style={styles.wordContainer}>
+    <Animated.View style={[styles.wordContainer, animatedLiftStyle]}>
       {/* Base Dim Text */}
       <Text style={[styles.wordBaseText, { color: color.text.tertiary }]}>
         {word.text}
@@ -63,7 +83,7 @@ const LyricWordView = memo(function LyricWordView({
           style={[
             styles.wordSweptText,
             {
-              color: '#FFFFFF',
+              color: color.text.primary,
               textShadowColor: activeColor,
               textShadowRadius: 8,
               textShadowOffset: { width: 0, height: 0 },
@@ -74,9 +94,49 @@ const LyricWordView = memo(function LyricWordView({
           {word.text}
         </Text>
       </Animated.View>
+    </Animated.View>
+  );
+});
+
+interface InstrumentalGapViewProps {
+  line: LyricLine;
+  positionMs: SharedValue<number>;
+  isActiveLine: boolean;
+  activeColor: string;
+}
+
+const InstrumentalGapView = memo(function InstrumentalGapView({
+  line,
+  positionMs,
+  isActiveLine,
+  activeColor,
+}: InstrumentalGapViewProps) {
+  const animatedDotStyle = useAnimatedStyle(() => {
+    'worklet';
+    if (!isActiveLine) {
+      return { opacity: 0.3, transform: [{ scale: 0.9 }] };
+    }
+    const pos = positionMs.value;
+    const progress = (pos - line.timeMs) / Math.max(1, line.endMs - line.timeMs);
+    const wave = Math.sin(progress * Math.PI * 6);
+    const pulse = 0.5 + 0.5 * Math.max(0, wave);
+    return {
+      opacity: Math.max(0.3, Math.min(1.0, pulse)),
+      transform: [{ scale: 0.95 + 0.15 * pulse }],
+    };
+  });
+
+  return (
+    <View style={styles.gapContainer} accessible accessibilityLabel="Instrumental break">
+      <Animated.View style={[styles.gapRow, animatedDotStyle]}>
+        <View style={[styles.gapDot, { backgroundColor: activeColor }]} />
+        <View style={[styles.gapDot, { backgroundColor: activeColor }]} />
+        <View style={[styles.gapDot, { backgroundColor: activeColor }]} />
+      </Animated.View>
     </View>
   );
 });
+
 
 export const OTOLyricLine = memo(function OTOLyricLine({
   line,
@@ -154,7 +214,14 @@ export const OTOLyricLine = memo(function OTOLyricLine({
           lineAnimatedStyle,
         ]}
       >
-        {line.isWordSynced && line.words.length > 0 ? (
+        {line.isGap ? (
+          <InstrumentalGapView
+            line={line}
+            positionMs={positionMs}
+            isActiveLine={isActive}
+            activeColor={activeColor}
+          />
+        ) : line.isWordSynced && line.words.length > 0 ? (
           <View
             style={[
               styles.wordsWrapper,
@@ -177,7 +244,7 @@ export const OTOLyricLine = memo(function OTOLyricLine({
             style={[
               styles.plainLineText,
               {
-                color: isActive ? '#FFFFFF' : color.text.secondary,
+                color: isActive ? color.text.primary : color.text.secondary,
                 textAlign: isEndAligned ? 'right' : isRtl ? 'right' : 'left',
               },
             ]}
@@ -272,4 +339,19 @@ const styles = StyleSheet.create({
     color: color.text.tertiary,
     fontStyle: 'italic',
   },
+  gapContainer: {
+    paddingVertical: space[3],
+    justifyContent: 'center',
+  },
+  gapRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space[2],
+  },
+  gapDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
 });
+

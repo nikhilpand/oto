@@ -13,11 +13,14 @@
  * Also handles loading states (HomeSkeleton) and designed offline states (OfflineBanner).
  */
 
-import React, { useState, useCallback } from 'react';
-import { StyleSheet, ScrollView, RefreshControl } from 'react-native';
+import React, { useState, useCallback, useMemo } from 'react';
+import { StyleSheet, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Animated, { useAnimatedScrollHandler } from 'react-native-reanimated';
+import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import { color } from '@/design/tokens';
+import { color, BOTTOM_CHROME_HEIGHT } from '@/design/tokens';
+import { useScrollOffset } from '@/design/context/ScrollOffsetContext';
 import { HomeHeader } from '../components/HomeHeader';
 import { HeroSection } from '../components/HeroSection';
 import { ContinueListeningSection } from '../components/ContinueListeningSection';
@@ -27,39 +30,70 @@ import { NewReleasesSection } from '../components/NewReleasesSection';
 import { MoodsGenresSection } from '../components/MoodsGenresSection';
 import { HomeSkeleton } from '../components/HomeSkeleton';
 import { OfflineBanner } from '../components/OfflineBanner';
-import { getMockHomeFeed } from '../data/mockHomeData';
-import { ContinueListeningItem, MadeForYouItem, NewReleaseItem, MoodGenreItem } from '../types';
+import { getLiveHomeFeed } from '@/api/otoBackend';
+import { ContinueListeningItem, MadeForYouItem, NewReleaseItem, MoodGenreItem, HomeFeedData } from '../types';
 import { Track } from '@/domain/types';
 import { useQueueStore } from '@/store/useQueueStore';
 import { useAudioEngine } from '@/audio/AudioContext';
+
+function getTimeAwareSubtitle(): string {
+  const hour = new Date().getHours();
+  if (hour < 5) return 'Late night listening session';
+  if (hour < 12) return 'Good music to start your morning';
+  if (hour < 17) return 'Afternoon soundtracks, curated for you';
+  if (hour < 21) return 'Evening vibes, just for you';
+  return 'Wind down with some great music';
+}
 
 export interface HomeScreenContentProps {
   isLoading?: boolean;
   isOffline?: boolean;
   onStorybookToggle?: () => void;
-  onSearchPress?: () => void;
 }
 
 export function HomeScreenContent({
   isLoading = false,
   isOffline = false,
   onStorybookToggle,
-  onSearchPress,
 }: HomeScreenContentProps): React.JSX.Element {
-  const [feedData, setFeedData] = useState(() => getMockHomeFeed());
   const [refreshing, setRefreshing] = useState(false);
+  const [feedData, setFeedData] = useState<HomeFeedData | null>(null);
+  const { scrollY } = useScrollOffset();
+  const router = useRouter();
+  const scrollHandler = useAnimatedScrollHandler((e) => {
+    'worklet';
+    scrollY.value = e.contentOffset.y;
+  });
   const [cachedOnly, setCachedOnly] = useState(false);
+  const subtitle = useMemo(() => getTimeAwareSubtitle(), []);
 
   const engine = useAudioEngine();
   const playContext = useQueueStore((s) => s.playContext);
 
+  // Eagerly hydrate with live real catalog from backend
+  React.useEffect(() => {
+    let isMounted = true;
+    void getLiveHomeFeed().then((live) => {
+      if (isMounted && live) {
+        setFeedData(live);
+      }
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   const handleRefresh = useCallback(() => {
     setRefreshing(true);
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setTimeout(() => {
-      setFeedData(getMockHomeFeed());
+    void getLiveHomeFeed().then((live) => {
+      if (live) {
+        setFeedData(live);
+      }
       setRefreshing(false);
-    }, 600);
+    }).catch(() => {
+      setRefreshing(false);
+    });
   }, []);
 
   const handlePlayTrack = useCallback(
@@ -128,7 +162,7 @@ export function HomeScreenContent({
     (item: MoodGenreItem) => {
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       // Play a session of quick picks or mood tracks
-      const sessionTracks = feedData.quickPicks;
+      const sessionTracks = feedData?.quickPicks || [];
       if (sessionTracks.length > 0) {
         playContext(sessionTracks, 0, {
           id: item.id,
@@ -138,19 +172,21 @@ export function HomeScreenContent({
         void engine.load(sessionTracks[0]!, true);
       }
     },
-    [engine, feedData.quickPicks, playContext]
+    [engine, feedData?.quickPicks, playContext]
   );
 
-  if (isLoading) {
+  if (isLoading || !feedData) {
     return <HomeSkeleton />;
   }
 
   return (
     <SafeAreaView edges={['top']} style={styles.safeArea}>
-      <ScrollView
+      <Animated.ScrollView
         style={styles.container}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
+        onScroll={scrollHandler}
+        scrollEventThrottle={16}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -162,7 +198,11 @@ export function HomeScreenContent({
         {/* 1. Editorial Header */}
         <HomeHeader
           greeting={feedData.greeting}
-          onSearchPress={() => onSearchPress?.()}
+          subtitle={subtitle}
+          onSearchPress={() => {
+            void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            router.push('/(tabs)/search');
+          }}
           onStorybookToggle={onStorybookToggle}
         />
 
@@ -176,7 +216,15 @@ export function HomeScreenContent({
         {/* 2. Hero Section (~320x340 dp atmospheric wash) */}
         <HeroSection
           track={feedData.heroTrack}
-          onPlay={(t) => handlePlayTrack(t, [feedData.heroTrack])}
+          onPlay={(t) =>
+            handlePlayTrack(t, [feedData.heroTrack, ...(feedData.quickPicks || [])])
+          }
+          onPressCard={() =>
+            handlePlayTrack(feedData.heroTrack, [
+              feedData.heroTrack,
+              ...(feedData.quickPicks || []),
+            ])
+          }
         />
 
         {/* 3. Continue Listening (Compact 220x72 dp horizontal pills with progress) */}
@@ -208,7 +256,7 @@ export function HomeScreenContent({
           items={feedData.moodsGenres}
           onSelect={handleSelectMoodGenre}
         />
-      </ScrollView>
+      </Animated.ScrollView>
     </SafeAreaView>
   );
 }
@@ -222,7 +270,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    // Generous bottom clearance to ensure content is never covered by floating mini player + tabs
-    paddingBottom: 128,
+    // Bottom clearance: tab bar + mini player + gap + safe area handled by token
+    paddingBottom: BOTTOM_CHROME_HEIGHT + 16,
   },
 });

@@ -126,6 +126,40 @@ export const touchTarget = {
   android: 48,
 } as const;
 
+// ─── Shadow Tokens ───────────────────────────────────────────────────
+
+/**
+ * Card depth tokens for both platforms.
+ * iOS: native shadow props. Android: elevation + shadowColor together.
+ * Usage: StyleSheet.create({ card: { ...shadow.card } })
+ */
+export const shadow = {
+  card: {
+    // subtle lift for standard content cards
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.28,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  sheet: {
+    // glass sheets, mini-player
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.40,
+    shadowRadius: 16,
+    elevation: 12,
+  },
+  overlay: {
+    // full-screen overlays, full player
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 16 },
+    shadowOpacity: 0.55,
+    shadowRadius: 24,
+    elevation: 24,
+  },
+} as const;
+
 // ─── Quality Tiers ────────────────────────────────────────────────────
 
 export enum QualityTier {
@@ -134,6 +168,21 @@ export enum QualityTier {
   Balanced = 2,
   Full = 3,
 }
+
+// ─── Layout Dimensions ────────────────────────────────────────────────
+
+/** Height of the bottom native tab bar (includes internal padding). */
+export const TAB_BAR_HEIGHT = 56;
+
+/** Height of the floating mini-player pill. */
+export const MINI_PLAYER_HEIGHT = 58;
+
+/** Gap between mini-player and tab bar. */
+export const MINI_PLAYER_GAP = 8; // space[2]
+
+/** Total chrome height at bottom = tab bar + mini player + gap. */
+export const BOTTOM_CHROME_HEIGHT = TAB_BAR_HEIGHT + MINI_PLAYER_HEIGHT + MINI_PLAYER_GAP;
+
 
 // ─── Aliases & Helper Types ──────────────────────────────────────────
 
@@ -147,5 +196,6 @@ export type TextColorRole = 'primary' | 'secondary' | 'tertiary' | 'disabled';
 export type RadiusSize = keyof typeof radius;
 export type SpacingScale = typeof space;
 export type SpringTokens = typeof spring;
+export type ShadowTokens = typeof shadow;
 export type DurationTokens = typeof duration;
 

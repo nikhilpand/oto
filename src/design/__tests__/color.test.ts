@@ -8,8 +8,14 @@ import {
   wcagContrast,
   clampOklchContrast,
   hexToRgb,
+  topBandScrimAlpha,
+  averageRelativeLuminance,
 } from '@/design/color/oklch';
-import { extractPaletteFromPixels, getFallbackPalette } from '@/design/color/extract';
+import {
+  extractPaletteFromPixels,
+  getFallbackPalette,
+  adaptedArtworkSaturation,
+} from '@/design/color/extract';
 import { PaletteCache } from '@/design/color/cache';
 import { PaletteResult, PixelRgb } from '@/design/color/types';
 
@@ -219,5 +225,48 @@ describe('Palette Cache Sub-Millisecond Performance', () => {
   test('returns null for cache miss', () => {
     const cache = new PaletteCache();
     expect(cache.get('non_existent_key')).toBeNull();
+  });
+});
+
+describe('Artwork Palette Adaptation (BitChord Reference ArtworkPaletteTest)', () => {
+  test('grayscale does not acquire the default red hue', () => {
+    expect(adaptedArtworkSaturation(0, 0.2, 0.62)).toBe(0);
+    expect(adaptedArtworkSaturation(0, 0.55, 1)).toBe(0);
+  });
+
+  test('nearly neutral artwork keeps its subtle saturation', () => {
+    expect(adaptedArtworkSaturation(0.08, 0.2, 0.62)).toBe(0.08);
+  });
+
+  test('genuinely chromatic artwork is still strengthened and capped', () => {
+    expect(adaptedArtworkSaturation(0.25, 0.55, 1)).toBe(0.55);
+    expect(adaptedArtworkSaturation(0.9, 0.2, 0.62)).toBe(0.62);
+  });
+});
+
+describe('Status Bar Contrast Scrim (BitChord Reference StatusBarContrastTest)', () => {
+  test('dark top band uses subtle base scrim', () => {
+    expect(topBandScrimAlpha(0)).toBeCloseTo(0.16, 4);
+    expect(topBandScrimAlpha(null)).toBeCloseTo(0.16, 4);
+  });
+
+  test('light top band uses maximum scrim', () => {
+    expect(topBandScrimAlpha(1)).toBeCloseTo(0.65, 4);
+    // Out of range is clamped, not extrapolated
+    expect(topBandScrimAlpha(2)).toBeCloseTo(0.65, 4);
+  });
+
+  test('mixed top band interpolates scrim in linear luminance', () => {
+    // 4 pixels: Black, White, Black, White
+    const mixed = averageRelativeLuminance([
+      0xff000000,
+      0xffffffff,
+      0xff000000,
+      0xffffffff,
+    ]);
+
+    expect(mixed).toBeCloseTo(0.5, 4);
+    // The midpoint of the 0.16...0.65 band in linear luminance is 0.405
+    expect(topBandScrimAlpha(mixed)).toBeCloseTo(0.405, 4);
   });
 });

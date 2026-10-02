@@ -1,16 +1,78 @@
 /**
  * NewReleasesSection — Horizontal Scroller with Release Date Badges
  *
- * Distinct visual density: 130x170 dp cards with release date badge ("NEW", "SEP 28")
- * overlaid on artwork with glass/solid pill.
+ * Spring-animated press cards. Each card scales to 0.93 on press with
+ * a snappy spring rebound. Release date badge floats top-right.
  */
 
 import React from 'react';
-import { View, StyleSheet, ScrollView, Pressable } from 'react-native';
-import { space, radius } from '@/design/tokens';
+import { View, StyleSheet, ScrollView } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+} from 'react-native-reanimated';
+import { Pressable } from 'react-native';
+import { color, space, radius } from '@/design/tokens';
 import { OTOText } from '@/design/components/OTOText';
 import { OTOArtwork } from '@/design/components/OTOArtwork';
 import { NewReleaseItem } from '../types';
+
+const SPRING = { damping: 18, stiffness: 260, mass: 0.8 };
+
+function NewReleaseCard({
+  item,
+  onSelect,
+}: {
+  item: NewReleaseItem;
+  onSelect: (item: NewReleaseItem) => void;
+}) {
+  const scale = useSharedValue(1);
+
+  const animStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  return (
+    <Pressable
+      accessible
+      accessibilityRole="button"
+      accessibilityLabel={`New release: ${item.title} by ${item.artist}. Released ${item.releaseBadge}.`}
+      accessibilityHint="Plays this new release"
+      onPressIn={() => { scale.value = withSpring(0.93, SPRING); }}
+      onPressOut={() => { scale.value = withSpring(1, SPRING); }}
+      onPress={() => onSelect(item)}
+    >
+      <Animated.View style={[styles.card, animStyle]}>
+        {/* Artwork with Release Badge Overlay */}
+        <View style={styles.artworkWrapper}>
+          <OTOArtwork
+            uri={item.artworkUrl}
+            thumbhash={item.thumbhash}
+            size={130}
+            borderRadius={radius.md}
+            alt={`${item.title} release art`}
+          />
+          <View style={styles.badgeOverlay}>
+            <OTOText variant="meta" weight="bold" colorRole="primary">
+              {item.releaseBadge}
+            </OTOText>
+          </View>
+        </View>
+
+        {/* Title & Artist */}
+        <View style={styles.infoContainer}>
+          <OTOText variant="caption" weight="semibold" numberOfLines={1}>
+            {item.title}
+          </OTOText>
+          <OTOText variant="meta" colorRole="secondary" numberOfLines={1}>
+            {item.artist}
+          </OTOText>
+        </View>
+      </Animated.View>
+    </Pressable>
+  );
+}
 
 export interface NewReleasesSectionProps {
   items: NewReleaseItem[];
@@ -38,43 +100,12 @@ export function NewReleasesSection({
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        decelerationRate="fast"
+        snapToInterval={130 + 12}
+        snapToAlignment="start"
       >
         {items.map((item) => (
-          <Pressable
-            key={item.id}
-            accessible
-            accessibilityRole="button"
-            accessibilityLabel={`New release: ${item.title} by ${item.artist}. Released ${item.releaseBadge}.`}
-            accessibilityHint="Plays this new release"
-            onPress={() => onSelect(item)}
-            style={styles.card}
-          >
-            {/* Artwork with Release Badge Overlay */}
-            <View style={styles.artworkWrapper}>
-              <OTOArtwork
-                uri={item.artworkUrl}
-                thumbhash={item.thumbhash}
-                size={130}
-                borderRadius={radius.md}
-                alt={`${item.title} release art`}
-              />
-              <View style={styles.badgeOverlay}>
-                <OTOText variant="meta" weight="bold" colorRole="primary">
-                  {item.releaseBadge}
-                </OTOText>
-              </View>
-            </View>
-
-            {/* Title & Artist */}
-            <View style={styles.infoContainer}>
-              <OTOText variant="caption" weight="semibold" numberOfLines={1}>
-                {item.title}
-              </OTOText>
-              <OTOText variant="meta" colorRole="secondary" numberOfLines={1}>
-                {item.artist}
-              </OTOText>
-            </View>
-          </Pressable>
+          <NewReleaseCard key={item.id} item={item} onSelect={onSelect} />
         ))}
       </ScrollView>
     </View>
@@ -105,20 +136,20 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 6,
-    elevation: 4,
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
   },
   badgeOverlay: {
     position: 'absolute',
     top: space[1],
     right: space[1],
-    backgroundColor: 'rgba(0, 0, 0, 0.72)',
+    backgroundColor: 'rgba(0, 0, 0, 0.76)',
     paddingHorizontal: space[2],
     paddingVertical: 2,
     borderRadius: radius.full,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
+    borderColor: color.glass.highlight,
   },
   infoContainer: {
     gap: 2,

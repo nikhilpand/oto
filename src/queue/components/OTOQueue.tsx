@@ -33,8 +33,11 @@ import { ShuffleIcon, ChevronDownIcon } from '@/design/components/OTOIcon';
 import { usePalette } from '@/design/context/PaletteContext';
 import { OTOQueueItem } from './OTOQueueItem';
 
+// @ts-ignore
+const isFabric = Boolean(global?.nativeFabricUIManager);
 if (
   Platform.OS === 'android' &&
+  !isFabric &&
   UIManager.setLayoutAnimationEnabledExperimental
 ) {
   UIManager.setLayoutAnimationEnabledExperimental(true);

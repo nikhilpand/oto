@@ -9,7 +9,7 @@
  * - Offline filter: shows only downloaded items when offline / Downloads filter
  */
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   StyleSheet,
   useWindowDimensions,
@@ -17,8 +17,11 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FlashList } from '@shopify/flash-list';
+import { useAnimatedScrollHandler } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { color, space } from '@/design/tokens';
+import { useScrollOffset } from '@/design/context/ScrollOffsetContext';
+import { ScrollFadeEdge } from '@/design/components/ScrollFadeEdge';
 import { OTOText } from '@/design/components/OTOText';
 import { useAudioEngine } from '@/audio/AudioContext';
 import { useQueueStore } from '@/store/useQueueStore';
@@ -27,9 +30,8 @@ import { LikedSongsCard } from '../components/LikedSongsCard';
 import { LibraryItemRow } from '../components/LibraryItemRow';
 import { LibraryItemCard } from '../components/LibraryItemCard';
 import { LibraryToolbar } from '../components/LibraryToolbar';
-import { MOCK_LIBRARY_ITEMS, LIKED_SONGS_INFO } from '../data/mockLibraryData';
-import { CATALOG_TRACKS } from '@/search/data/searchCatalog';
-import type { LibraryFilter, LibraryItem, LibrarySortOrder, LibraryViewMode } from '../types';
+import { getLiveHomeFeed } from '@/api/otoBackend';
+import type { LibraryFilter, LibraryItem, LibrarySortOrder, LibraryViewMode, LikedSongsInfo } from '../types';
 import type { Track } from '@/domain/types';
 
 // ─── Utility ─────────────────────────────────────────────────────────
@@ -61,31 +63,106 @@ export function LibraryScreenContent() {
   const [filter, setFilter] = useState<LibraryFilter>('all');
   const [sortOrder, setSortOrder] = useState<LibrarySortOrder>('recent');
   const [viewMode, setViewMode] = useState<LibraryViewMode>('list');
-  const isOffline = false; // TODO: hook into network state in P12
+  const [libraryItems, setLibraryItems] = useState<LibraryItem[]>([]);
+  const [likedInfo, setLikedInfo] = useState<LikedSongsInfo>({
+    count: 0,
+    recentArtworkUrls: [],
+    tracks: [],
+  });
+  const isOffline = false;
 
   const engine = useAudioEngine();
   const playContext = useQueueStore((s) => s.playContext);
 
+  const { scrollY } = useScrollOffset();
+  const scrollHandler = useAnimatedScrollHandler((e) => {
+    'worklet';
+    scrollY.value = e.contentOffset.y;
+  });
+
   const { width } = useWindowDimensions();
   const columnWidth = (width - space[4] * 2) / 2;
 
+  useEffect(() => {
+    let isMounted = true;
+    void getLiveHomeFeed().then((feed) => {
+      if (!isMounted || !feed) return;
+      const items: LibraryItem[] = [];
+
+      // 1. Playlists from Made For You shelves
+      feed.madeForYou.forEach((mfy, idx) => {
+        items.push({
+          id: mfy.id,
+          kind: 'playlist',
+          title: mfy.title,
+          subtitle: `${mfy.trackCount} songs · Curated`,
+          artworkUrl: mfy.artworkUrl,
+          thumbhash: mfy.thumbhash,
+          download: { status: idx === 0 ? 'downloaded' : 'none' },
+          addedAt: new Date(Date.now() - idx * 86400000).toISOString(),
+          playlist: {
+            id: mfy.id,
+            title: mfy.title,
+            description: mfy.subtitle,
+            artworkUrl: mfy.artworkUrl,
+            thumbhash: mfy.thumbhash,
+            trackCount: mfy.trackCount,
+            curated: true,
+            tracks: mfy.tracks,
+          },
+        });
+      });
+
+      // 2. Albums from New Releases
+      feed.newReleases.forEach((nr, idx) => {
+        items.push({
+          id: nr.id,
+          kind: 'album',
+          title: nr.title,
+          subtitle: `${nr.artist} · 2026`,
+          artworkUrl: nr.artworkUrl,
+          thumbhash: nr.thumbhash,
+          download: { status: 'none' },
+          addedAt: new Date(Date.now() - (idx + 10) * 86400000).toISOString(),
+          album: {
+            id: nr.id,
+            title: nr.title,
+            artist: nr.artist,
+            artworkUrl: nr.artworkUrl,
+            thumbhash: nr.thumbhash,
+            year: 2026,
+            trackCount: nr.tracks.length,
+            tracks: nr.tracks,
+          },
+        });
+      });
+
+      setLibraryItems(items);
+
+      if (feed.quickPicks.length > 0) {
+        setLikedInfo({
+          count: feed.quickPicks.length,
+          recentArtworkUrls: feed.quickPicks.slice(0, 4).map((t) => t.artworkUrl),
+          tracks: feed.quickPicks,
+        });
+      }
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   const filteredItems = useMemo(
-    () => applySort(applyFilter(MOCK_LIBRARY_ITEMS, filter, isOffline), sortOrder),
-    [filter, sortOrder, isOffline],
+    () => applySort(applyFilter(libraryItems, filter, isOffline), sortOrder),
+    [libraryItems, filter, sortOrder, isOffline],
   );
 
   const handleItemPress = useCallback(
     (item: LibraryItem) => {
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      let tracksToPlay: Track[] = [];
-      if (item.kind === 'album' && item.album) {
-        tracksToPlay = CATALOG_TRACKS.filter((t) => t.album === item.album?.title);
-      } else if (item.kind === 'artist' && item.artist) {
-        tracksToPlay = CATALOG_TRACKS.filter((t) => t.artist === item.artist?.name);
-      }
-      if (tracksToPlay.length === 0) {
-        tracksToPlay = CATALOG_TRACKS.slice(0, 5);
-      }
+      const tracksToPlay: Track[] = item.playlist?.tracks || item.album?.tracks || [];
+      if (tracksToPlay.length === 0) return;
+
       playContext(tracksToPlay, 0, {
         id: item.id,
         title: item.title,
@@ -101,7 +178,7 @@ export function LibraryScreenContent() {
 
   const handleLikedSongsPlay = useCallback(() => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    const tracks = LIKED_SONGS_INFO.tracks;
+    const tracks = likedInfo.tracks;
     if (tracks.length > 0) {
       playContext(tracks, 0, {
         id: 'liked_songs',
@@ -113,7 +190,7 @@ export function LibraryScreenContent() {
         void engine.load(firstTrack, true);
       }
     }
-  }, [engine, playContext]);
+  }, [engine, likedInfo.tracks, playContext]);
 
   const renderItem = useCallback(({ item }: { item: LibraryItem }) => {
     if (viewMode === 'grid') {
@@ -130,7 +207,7 @@ export function LibraryScreenContent() {
         Your Library
       </OTOText>
       <LibraryFilterBar active={filter} onChange={setFilter} />
-      <LikedSongsCard info={LIKED_SONGS_INFO} onPlay={handleLikedSongsPlay} />
+      <LikedSongsCard info={likedInfo} onPlay={handleLikedSongsPlay} />
       <LibraryToolbar
         sortOrder={sortOrder}
         viewMode={viewMode}
@@ -138,7 +215,7 @@ export function LibraryScreenContent() {
         onViewModeChange={setViewMode}
       />
     </>
-  ), [filter, sortOrder, viewMode, handleLikedSongsPlay]);
+  ), [filter, sortOrder, viewMode, likedInfo, handleLikedSongsPlay]);
 
   const ListEmpty = useCallback(() => {
     const msg =
@@ -166,7 +243,10 @@ export function LibraryScreenContent() {
         key={viewMode}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.list}
+        onScroll={scrollHandler}
+        scrollEventThrottle={16}
       />
+      <ScrollFadeEdge edge="bottom" />
     </SafeAreaView>
   );
 }

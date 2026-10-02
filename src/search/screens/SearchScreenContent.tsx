@@ -9,11 +9,14 @@
  * - Empty + no-results states
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useCallback, useRef, useState } from 'react';
+import Animated, { useAnimatedScrollHandler } from 'react-native-reanimated';
+import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { color, space, radius } from '@/design/tokens';
+import { useScrollOffset } from '@/design/context/ScrollOffsetContext';
+import { ScrollFadeEdge } from '@/design/components/ScrollFadeEdge';
 import { OTOText } from '@/design/components/OTOText';
 import { OTOArtwork } from '@/design/components/OTOArtwork';
 import { useAudioEngine } from '@/audio/AudioContext';
@@ -23,9 +26,10 @@ import { RecentSearchesView } from '../components/RecentSearchesView';
 import { TopResultCard } from '../components/TopResultCard';
 import { SearchEmptyState } from '../components/SearchEmptyState';
 import {
-  query as searchQuery,
   nextSequenceToken,
+  isCurrentToken,
 } from '../services/searchEngine';
+import { searchLiveCatalog } from '@/api/otoBackend';
 import {
   getRecentQueries,
   addRecentQuery,
@@ -103,23 +107,38 @@ const sectionStyles = StyleSheet.create({
 export function SearchScreenContent() {
   const [inputValue, setInputValue] = useState('');
   const [results, setResults] = useState<SearchResults | null>(null);
-  const [recentQueries, setRecentQueries] = useState<string[]>([]);
+  const [recentQueries, setRecentQueries] = useState<string[]>(() => getRecentQueries());
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isSearching = inputValue.trim().length > 0;
 
-  // Load recents on mount
-  useEffect(() => {
-    setRecentQueries(getRecentQueries());
-  }, []);
+  const { scrollY } = useScrollOffset();
+  const scrollHandler = useAnimatedScrollHandler((e) => {
+    'worklet';
+    scrollY.value = e.contentOffset.y;
+  });
 
   // Handle text change — synchronous state update, debounced search
   const handleChangeText = useCallback((text: string) => {
     setInputValue(text);
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
+    debounceRef.current = setTimeout(async () => {
       const token = nextSequenceToken();
-      const r = searchQuery(text, token);
-      if (r !== null) setResults(r);
+      // Query real live backend catalog (JioSaavn + YouTube)
+      const liveResults = await searchLiveCatalog(text);
+      if (!isCurrentToken(token)) return;
+
+      if (liveResults && liveResults.tracks.length > 0) {
+        setResults(liveResults);
+      } else {
+        setResults({
+          query: text,
+          topResult: null,
+          tracks: [],
+          artists: [],
+          albums: [],
+          playlists: [],
+        });
+      }
     }, DEBOUNCE_MS);
   }, []);
 
@@ -208,10 +227,12 @@ export function SearchScreenContent() {
         />
       </View>
 
-      <ScrollView
+      <Animated.ScrollView
         style={styles.scroll}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
+        onScroll={scrollHandler}
+        scrollEventThrottle={16}
       >
         {/* Idle state: recents + browse categories */}
         {!isSearching && (
@@ -346,7 +367,8 @@ export function SearchScreenContent() {
             <View style={styles.bottomPad} />
           </>
         )}
-      </ScrollView>
+      </Animated.ScrollView>
+      <ScrollFadeEdge edge="bottom" />
     </SafeAreaView>
   );
 }

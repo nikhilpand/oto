@@ -178,3 +178,32 @@ export function extractPaletteFromPixels(pixels: PixelRgb[]): PaletteResult {
     },
   };
 }
+
+/** Below this threshold, boosting saturation makes quantization noise visible as a tint. */
+export const CHROMATIC_SATURATION_THRESHOLD = 0.12;
+
+/**
+ * Adapts artwork color saturation while strictly preserving neutral and grayscale art.
+ *
+ * HSL represents grey with hue zero. Raising grey to a saturation floor does not
+ * make it "more colourful"; it manufactures a synthetic red/brown tint.
+ * A small real amount of colour is preserved as-is, while unmistakably chromatic
+ * swatches (>= 0.12) are clamped to [minimum, maximum].
+ *
+ * @param source Raw saturation in [0, 1]
+ * @param minimum Minimum saturation floor for chromatic art
+ * @param maximum Maximum saturation ceiling for chromatic art
+ * @returns Adapted saturation in [0, 1]
+ * @see BitChord/app/src/test/java/com/music/bitchord/ui/theme/ArtworkPaletteTest.kt
+ */
+export function adaptedArtworkSaturation(
+  source: number,
+  minimum: number,
+  maximum: number
+): number {
+  const saturation = Math.max(0, Math.min(1, source));
+  if (saturation < CHROMATIC_SATURATION_THRESHOLD) {
+    return saturation;
+  }
+  return Math.max(minimum, Math.min(maximum, saturation));
+}
