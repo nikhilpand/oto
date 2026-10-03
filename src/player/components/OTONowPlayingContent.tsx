@@ -57,6 +57,7 @@ export function OTONowPlayingContent({
 
   const {
     liveLyrics,
+    isLoadingLyrics,
     currentProvider,
     isTranslating,
     handleChangeProvider,
@@ -107,6 +108,7 @@ export function OTONowPlayingContent({
             lyrics={liveLyrics || EMPTY_LYRICS}
             positionMs={positionMs}
             onSeek={handleSeek}
+            isLoading={isLoadingLyrics}
             mode="fullscreen"
             providerName={currentProvider}
             onChangeProvider={handleChangeProvider}
@@ -177,7 +179,7 @@ export function OTONowPlayingContent({
         onClose={() => setShowOptions(false)}
         isLiked={isLiked}
         onToggleLike={() => setIsLiked((prev) => !prev)}
-        onDownload={(t) => enqueueDownload(t, '')}
+        onDownload={(t) => enqueueDownload(t)}
       />
       <AudioOutputSheet visible={showOutputSheet} onClose={() => setShowOutputSheet(false)} />
     </View>

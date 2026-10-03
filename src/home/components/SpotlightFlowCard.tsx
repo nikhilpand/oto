@@ -1,14 +1,6 @@
 /**
  * SpotlightFlowCard — Immersive Full-Width Track Feature Card
- *
- * A large, edge-to-edge card with:
- * - Full-bleed artwork background (palette-tinted atmospheric wash)
- * - Specular top-edge rim for glass depth
- * - Vertical gradient scrim ensuring WCAG 4.5:1 text contrast
- * - Spring-backed press scale (Reanimated worklet, UI thread only)
- * - Haptic feedback on primary CTA
- *
- * Usage: rendered inside SpotlightFlowSection snap carousel.
+ * Edge-to-edge card with full-bleed artwork, glass rim, and contrast scrim.
  */
 
 import React, { useCallback } from 'react';
@@ -90,9 +82,9 @@ export function SpotlightFlowCard({
           <OTOArtwork
             uri={track.artworkUrl}
             thumbhash={track.thumbhash}
-            size={CARD_HEIGHT - 80}
             borderRadius={0}
             alt={`${track.title} cover art`}
+            style={StyleSheet.absoluteFill}
           />
         </View>
 
@@ -146,10 +138,10 @@ const styles = StyleSheet.create({
     borderColor: color.glass.highlight,
     backgroundColor: color.bg.s1,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 16 },
-    shadowOpacity: 0.55,
-    shadowRadius: 24,
-    elevation: 12,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.4,
+    shadowRadius: 16,
+    elevation: 4,
   },
   topRim: {
     position: 'absolute',

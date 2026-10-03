@@ -454,7 +454,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingVertical: space[8],
-    paddingHorizontal: space[3],
+    paddingHorizontal: space[4],
     gap: space[2],
   },
   fallbackContainer: {

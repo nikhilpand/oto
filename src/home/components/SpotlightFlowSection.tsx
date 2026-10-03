@@ -45,11 +45,14 @@ export function SpotlightFlowSection({
     (e: NativeSyntheticEvent<NativeScrollEvent>) => {
       const x = e.nativeEvent.contentOffset.x;
       const idx = Math.round(x / SNAP_INTERVAL);
-      if (idx !== activeIndex && idx >= 0 && idx < tracks.length) {
-        setActiveIndex(idx);
-      }
+      setActiveIndex((prev) => {
+        if (idx !== prev && idx >= 0 && idx < tracks.length) {
+          return idx;
+        }
+        return prev;
+      });
     },
-    [activeIndex, tracks.length]
+    [tracks.length]
   );
 
   if (!tracks || tracks.length === 0) return null;
@@ -72,7 +75,7 @@ export function SpotlightFlowSection({
         snapToAlignment="center"
         showsHorizontalScrollIndicator={false}
         onScroll={handleScroll}
-        scrollEventThrottle={16}
+        scrollEventThrottle={32}
         contentContainerStyle={styles.scrollContent}
         accessibilityRole="scrollbar"
       >

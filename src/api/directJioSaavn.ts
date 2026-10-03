@@ -267,7 +267,7 @@ export async function resolveDirectStream(
 
       if (res.ok) {
         const json = await res.json();
-        const songData = json[cleanId] || json[Object.keys(json)[0] || ''];
+        const songData = json[cleanId];
         if (songData) {
           encUrl =
             songData.encrypted_media_url || songData.more_info?.encrypted_media_url;
@@ -330,7 +330,7 @@ export async function resolveDirectStream(
             durationMs: meta?.durationMs,
           };
 
-          const matched = findBestMatch(target, candidates, 0.65) || candidates[0];
+          const matched = findBestMatch(target, candidates, 0.65);
           if (matched && matched.encryptedUrl) {
             encUrl = matched.encryptedUrl;
             if (

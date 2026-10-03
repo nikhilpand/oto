@@ -11,6 +11,7 @@ import type { Track } from '@/domain/types';
 export function useNowPlayingLyrics(currentTrack: Track | null) {
   const [liveLyrics, setLiveLyrics] = useState<ParsedLyrics | null>(null);
   const [originalLyrics, setOriginalLyrics] = useState<ParsedLyrics | null>(null);
+  const [isLoadingLyrics, setIsLoadingLyrics] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
   const [isTranslated, setIsTranslated] = useState(false);
   const [currentProvider, setCurrentProvider] = useState<LyricsProviderName>('BiniLyrics');
@@ -21,20 +22,29 @@ export function useNowPlayingLyrics(currentTrack: Track | null) {
       setLiveLyrics(null);
       setOriginalLyrics(null);
       setIsTranslated(false);
+      setIsLoadingLyrics(true);
       void LyricsRepository.getLyrics({
         title: currentTrack.title,
         artist: currentTrack.artist,
         durationMs: currentTrack.durationMs,
         album: currentTrack.album,
         videoId: currentTrack.id,
-      }).then((lyrics) => {
-        if (!isMounted || !lyrics) return;
-        setLiveLyrics(lyrics);
-        setOriginalLyrics(lyrics);
-        if (lyrics.provider) {
-          setCurrentProvider(lyrics.provider as LyricsProviderName);
-        }
-      });
+      })
+        .then((lyrics) => {
+          if (!isMounted) return;
+          if (lyrics) {
+            setLiveLyrics(lyrics);
+            setOriginalLyrics(lyrics);
+            if (lyrics.provider) {
+              setCurrentProvider(lyrics.provider as LyricsProviderName);
+            }
+          }
+        })
+        .finally(() => {
+          if (isMounted) setIsLoadingLyrics(false);
+        });
+    } else {
+      setIsLoadingLyrics(false);
     }
     return () => {
       isMounted = false;
@@ -55,17 +65,22 @@ export function useNowPlayingLyrics(currentTrack: Track | null) {
     const nextProvider = providers[nextIdx] || 'BiniLyrics';
     setCurrentProvider(nextProvider);
 
-    const fetched = await LyricsRepository.getLyricsFromProvider(nextProvider, {
-      title: currentTrack.title,
-      artist: currentTrack.artist,
-      durationMs: currentTrack.durationMs,
-      album: currentTrack.album,
-      videoId: currentTrack.id,
-    });
-    if (fetched) {
-      setLiveLyrics(fetched);
-      setOriginalLyrics(fetched);
-      setIsTranslated(false);
+    setIsLoadingLyrics(true);
+    try {
+      const fetched = await LyricsRepository.getLyricsFromProvider(nextProvider, {
+        title: currentTrack.title,
+        artist: currentTrack.artist,
+        durationMs: currentTrack.durationMs,
+        album: currentTrack.album,
+        videoId: currentTrack.id,
+      });
+      if (fetched) {
+        setLiveLyrics(fetched);
+        setOriginalLyrics(fetched);
+        setIsTranslated(false);
+      }
+    } finally {
+      setIsLoadingLyrics(false);
     }
   }, [currentProvider, currentTrack]);
 
@@ -92,6 +107,7 @@ export function useNowPlayingLyrics(currentTrack: Track | null) {
 
   return {
     liveLyrics,
+    isLoadingLyrics,
     currentProvider,
     isTranslating,
     handleChangeProvider,

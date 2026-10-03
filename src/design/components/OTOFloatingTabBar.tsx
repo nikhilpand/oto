@@ -49,20 +49,25 @@ const TAB_CONFIG: Record<TabKey, { label: string; icon: (focused: boolean) => Re
   search:  { label: 'Search',  icon: (f) => <SearchIcon  size={22} color={f ? color.accent.signature : color.text.tertiary} focused={f} /> },
 };
 
-const TAB_ITEM_WIDTH = 72; // fixed slot width for pill animation math
-
 export function OTOFloatingTabBar({ state, descriptors, navigation }: OTOFloatingTabBarProps): React.JSX.Element {
   const { contentWidth, bottomInset } = useLayout();
   const barWidth = Math.min(contentWidth - space[4] * 2, 340);
   const bottomPos = Math.max(bottomInset, Platform.OS === 'android' ? space[3] : space[2]);
 
-  // Animated pill x position
-  const pillX = useSharedValue(state.index * TAB_ITEM_WIDTH);
+  const primaryRoutes = state.routes.filter((r) => TAB_KEYS.includes(r.name as TabKey));
+  const numTabs = Math.max(1, primaryRoutes.length);
+  const innerWidth = barWidth - space[2] * 2;
+  const slotWidth = innerWidth / numTabs;
+  const pillWidth = slotWidth - 6;
+  const pillLeft = space[2] + 3;
+
+  // Animated pill x position (UI thread)
+  const pillX = useSharedValue(state.index * slotWidth);
   const pillOpacity = useSharedValue(1);
 
   useEffect(() => {
-    pillX.value = withSpring(state.index * TAB_ITEM_WIDTH, spring.spatial.default);
-  }, [state.index, pillX]);
+    pillX.value = withSpring(state.index * slotWidth, spring.spatial.default);
+  }, [state.index, slotWidth, pillX]);
 
   const pillStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: pillX.value }],
@@ -80,13 +85,14 @@ export function OTOFloatingTabBar({ state, descriptors, navigation }: OTOFloatin
     [navigation]
   );
 
-  const primaryRoutes = state.routes.filter((r) => TAB_KEYS.includes(r.name as TabKey));
-
   return (
     <View style={[styles.outerContainer, { bottom: bottomPos, width: barWidth }]} pointerEvents="box-none">
       <View style={styles.capsule}>
         {/* Sliding tubelight pill */}
-        <Animated.View style={[styles.activePill, pillStyle]} pointerEvents="none" />
+        <Animated.View
+          style={[styles.activePill, { width: pillWidth, left: pillLeft }, pillStyle]}
+          pointerEvents="none"
+        />
 
         {primaryRoutes.map((route, index) => {
           const isFocused = state.index === index;
@@ -130,23 +136,23 @@ const styles = StyleSheet.create({
   capsule: {
     height: 64, backgroundColor: 'rgba(14, 14, 18, 0.96)',
     borderRadius: radius.full, flexDirection: 'row', alignItems: 'center',
-    justifyContent: 'space-around', paddingHorizontal: space[2],
+    paddingHorizontal: space[2],
     borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.09)',
     overflow: 'hidden',
   },
   activePill: {
     position: 'absolute',
-    width: TAB_ITEM_WIDTH,
-    height: 40,
+    height: 42,
     borderRadius: radius.full,
     backgroundColor: `${color.accent.signature}1A`,
     borderWidth: 1,
     borderColor: `${color.accent.signature}33`,
-    top: 12,
-    left: 0,
+    top: 11,
   },
   tabItem: {
-    width: TAB_ITEM_WIDTH, alignItems: 'center', justifyContent: 'center',
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
     height: '100%',
   },
   iconWrap: { alignItems: 'center', justifyContent: 'center' },

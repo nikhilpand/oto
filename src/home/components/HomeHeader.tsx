@@ -1,8 +1,3 @@
-/**
- * HomeHeader — Editorial Greeting, Search Trigger & Profile Actions
- * Decomposed and streamlined (< 200 lines) per AGENTS.md.
- */
-
 import React, { useCallback } from 'react';
 import { View, StyleSheet, Pressable, Platform } from 'react-native';
 import { Image } from 'expo-image';
@@ -16,6 +11,7 @@ export interface HomeHeaderProps {
   greeting: string;
   subtitle?: string;
   avatarUrl?: string;
+  isSignedIn?: boolean;
   onSearchPress: () => void;
   onProfilePress?: () => void;
   onSettingsPress?: () => void;
@@ -26,43 +22,29 @@ export function HomeHeader({
   greeting,
   subtitle = 'Soundtracks for your day',
   avatarUrl,
+  isSignedIn = false,
   onSearchPress,
   onProfilePress,
   onSettingsPress,
   onStorybookToggle,
 }: HomeHeaderProps): React.JSX.Element {
-  const minTouch = Platform.select({
-    ios: touchTarget.ios,
-    default: touchTarget.android,
-  });
+  const minTouch = Platform.select({ ios: touchTarget.ios, default: touchTarget.android });
 
   const pillScale = useSharedValue(1);
   const avatarScale = useSharedValue(1);
 
-  const pillStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: pillScale.value }],
-  }));
-  const avatarStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: avatarScale.value }],
-  }));
+  const pillStyle = useAnimatedStyle(() => ({ transform: [{ scale: pillScale.value }] }));
+  const avatarStyle = useAnimatedStyle(() => ({ transform: [{ scale: avatarScale.value }] }));
 
-  const handlePillPressIn = useCallback(() => {
-    pillScale.value = withSpring(0.97, spring.spatial.fast);
-  }, [pillScale]);
-  const handlePillPressOut = useCallback(() => {
-    pillScale.value = withSpring(1, spring.spatial.playful);
-  }, [pillScale]);
+  const handlePillPressIn = useCallback(() => { pillScale.value = withSpring(0.97, spring.spatial.fast); }, [pillScale]);
+  const handlePillPressOut = useCallback(() => { pillScale.value = withSpring(1, spring.spatial.playful); }, [pillScale]);
 
   return (
     <View style={styles.container}>
       <View style={styles.topRow}>
         <View style={styles.greetingContainer}>
-          <OTOText variant="headline" weight="bold">
-            {greeting}
-          </OTOText>
-          <OTOText variant="caption" colorRole="secondary">
-            {subtitle}
-          </OTOText>
+          <OTOText variant="headline" weight="bold">{greeting}</OTOText>
+          <OTOText variant="caption" colorRole="secondary">{subtitle}</OTOText>
         </View>
 
         <View style={styles.actionsContainer}>
@@ -70,7 +52,6 @@ export function HomeHeader({
             <OTOIconButton
               icon={<LibraryIcon size={20} color={color.text.secondary} />}
               accessibilityLabel="Open Storybook developer catalog"
-              accessibilityHint="Switches to Storybook component view"
               onPress={onStorybookToggle}
               size={minTouch}
             />
@@ -80,33 +61,47 @@ export function HomeHeader({
             <OTOIconButton
               icon={<SettingsIcon size={20} color={color.text.secondary} />}
               accessibilityLabel="Open settings"
-              accessibilityHint="Navigates to app settings and preferences"
               onPress={onSettingsPress}
               size={minTouch}
             />
           )}
 
-          <Pressable
-            accessible
-            accessibilityRole="button"
-            accessibilityLabel="User profile settings"
-            onPress={onProfilePress}
-            onPressIn={() => { avatarScale.value = withSpring(0.9, spring.spatial.fast); }}
-            onPressOut={() => { avatarScale.value = withSpring(1, spring.spatial.playful); }}
-            style={[styles.avatarPressable, { minWidth: minTouch, minHeight: minTouch }]}
-          >
-            <Animated.View style={[styles.avatar, avatarStyle]}>
-              <View style={styles.avatarInner}>
-                {avatarUrl ? (
-                  <Image source={{ uri: avatarUrl }} style={styles.avatarImage} contentFit="cover" transition={200} />
-                ) : (
-                  <OTOText variant="caption" weight="bold" style={styles.avatarText}>
-                    O
-                  </OTOText>
-                )}
+          {!isSignedIn ? (
+            <Pressable
+              accessible
+              accessibilityRole="button"
+              accessibilityLabel="Sign in with Google Account"
+              onPress={onProfilePress}
+              style={styles.signInBadge}
+            >
+              <View style={styles.googleIconCircle}>
+                <OTOText variant="caption" weight="bold" style={styles.googleIconText}>G</OTOText>
               </View>
-            </Animated.View>
-          </Pressable>
+              <OTOText variant="caption" weight="bold" colorRole="primary" style={styles.signInText}>
+                Sign In
+              </OTOText>
+            </Pressable>
+          ) : (
+            <Pressable
+              accessible
+              accessibilityRole="button"
+              accessibilityLabel="User profile settings"
+              onPress={onProfilePress}
+              onPressIn={() => { avatarScale.value = withSpring(0.9, spring.spatial.fast); }}
+              onPressOut={() => { avatarScale.value = withSpring(1, spring.spatial.playful); }}
+              style={[styles.avatarPressable, { minWidth: minTouch, minHeight: minTouch }]}
+            >
+              <Animated.View style={[styles.avatar, avatarStyle]}>
+                <View style={styles.avatarInner}>
+                  {avatarUrl ? (
+                    <Image source={{ uri: avatarUrl }} style={styles.avatarImage} contentFit="cover" transition={200} />
+                  ) : (
+                    <OTOText variant="caption" weight="bold" style={styles.avatarText}>O</OTOText>
+                  )}
+                </View>
+              </Animated.View>
+            </Pressable>
+          )}
         </View>
       </View>
 
@@ -127,9 +122,7 @@ export function HomeHeader({
             What do you want to play?
           </OTOText>
           <View style={styles.searchShortcutBadge}>
-            <OTOText variant="meta" colorRole="tertiary" style={styles.searchShortcutText}>
-              Search
-            </OTOText>
+            <OTOText variant="meta" colorRole="tertiary" style={styles.searchShortcutText}>Search</OTOText>
           </View>
         </Pressable>
       </Animated.View>
@@ -142,6 +135,28 @@ const styles = StyleSheet.create({
   topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   greetingContainer: { flex: 1, gap: space[0] },
   actionsContainer: { flexDirection: 'row', alignItems: 'center', gap: space[1] },
+  signInBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space[1],
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.16)',
+    borderRadius: radius.full,
+    paddingHorizontal: space[2],
+    paddingVertical: 5,
+    minHeight: 36,
+  },
+  googleIconCircle: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  googleIconText: { color: '#0E0E12', fontSize: 11, fontWeight: '900' },
+  signInText: { fontSize: type.caption[0], letterSpacing: 0.2 },
   avatar: {
     width: 38,
     height: 38,
@@ -152,10 +167,6 @@ const styles = StyleSheet.create({
     borderTopColor: color.text.disabled,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: color.accent.signature,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
     elevation: 3,
   },
   avatarInner: {
@@ -169,6 +180,7 @@ const styles = StyleSheet.create({
   },
   avatarImage: { width: '100%', height: '100%', borderRadius: 15 },
   avatarText: { color: color.accent.signature, fontSize: type.meta[0], fontWeight: '700' },
+  avatarPressable: { alignItems: 'center', justifyContent: 'center' },
   searchPill: {
     height: 48,
     borderRadius: radius.full,
@@ -180,10 +192,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: space[3],
     gap: space[2],
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
     elevation: 3,
   },
   searchText: { flex: 1 },
@@ -196,5 +204,4 @@ const styles = StyleSheet.create({
     borderColor: color.hairline,
   },
   searchShortcutText: { fontSize: type.caption[0] },
-  avatarPressable: { alignItems: 'center', justifyContent: 'center' },
 });

@@ -96,6 +96,10 @@ export interface ChunkDownloadOptions {
 export async function downloadInChunks(opts: ChunkDownloadOptions): Promise<string> {
   const { trackId, streamUrl, ext = 'm4a', headers = {}, onProgress, signal } = opts;
 
+  if (!streamUrl || typeof streamUrl !== 'string' || !streamUrl.startsWith('http')) {
+    throw new Error(`Invalid stream URL for track ${trackId}: "${streamUrl}"`);
+  }
+
   await ensureDownloadsDirExists();
 
   const finalUri = localUriForTrack(trackId, ext);

@@ -246,6 +246,8 @@ export function useHomeFeed() {
     feedData,
     subtitle,
     refreshing,
+    isSignedIn,
+    activeProfile,
     authModalVisible,
     setAuthModalVisible,
     handleRefresh,

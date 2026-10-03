@@ -43,11 +43,35 @@ export interface DownloadRecord {
 // ─── DB Singleton ───────────────────────────────────────────────────────────
 
 let _db: SQLite.SQLiteDatabase | null = null;
+let _initialized = false;
+
+function ensureInitialized(db: SQLite.SQLiteDatabase): void {
+  if (_initialized) return;
+  try {
+    db.execSync(`
+      CREATE TABLE IF NOT EXISTS downloads (
+        id TEXT PRIMARY KEY,
+        track_json TEXT NOT NULL,
+        local_uri TEXT NOT NULL,
+        file_size_bytes INTEGER NOT NULL DEFAULT 0,
+        status TEXT NOT NULL DEFAULT 'queued',
+        progress REAL NOT NULL DEFAULT 0,
+        created_at INTEGER NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS idx_downloads_status ON downloads(status);
+      CREATE INDEX IF NOT EXISTS idx_downloads_created_at ON downloads(created_at DESC);
+    `);
+    _initialized = true;
+  } catch {
+    // SQLite table init guard
+  }
+}
 
 function getDB(): SQLite.SQLiteDatabase {
   if (!_db) {
     _db = SQLite.openDatabaseSync('oto_downloads.db');
   }
+  ensureInitialized(_db);
   return _db;
 }
 
@@ -55,19 +79,7 @@ function getDB(): SQLite.SQLiteDatabase {
 
 export function initDownloadDB(): void {
   const db = getDB();
-  db.execSync(`
-    CREATE TABLE IF NOT EXISTS downloads (
-      id TEXT PRIMARY KEY,
-      track_json TEXT NOT NULL,
-      local_uri TEXT NOT NULL,
-      file_size_bytes INTEGER NOT NULL DEFAULT 0,
-      status TEXT NOT NULL DEFAULT 'queued',
-      progress REAL NOT NULL DEFAULT 0,
-      created_at INTEGER NOT NULL
-    );
-    CREATE INDEX IF NOT EXISTS idx_downloads_status ON downloads(status);
-    CREATE INDEX IF NOT EXISTS idx_downloads_created_at ON downloads(created_at DESC);
-  `);
+  ensureInitialized(db);
 }
 
 // ─── Row → Record ───────────────────────────────────────────────────────────

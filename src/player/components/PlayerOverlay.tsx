@@ -3,6 +3,7 @@ import {
   View,
   StyleSheet,
   useWindowDimensions,
+  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
@@ -11,7 +12,7 @@ import Animated, {
   useAnimatedReaction,
   runOnJS,
 } from 'react-native-reanimated';
-import { space, radius, TAB_BAR_HEIGHT } from '@/design/tokens';
+import { space, radius } from '@/design/tokens';
 import { OTOArtwork } from '@/design/components/OTOArtwork';
 import { usePalette } from '@/design/context/PaletteContext';
 import { usePlaybackStore } from '@/store/usePlaybackStore';
@@ -39,7 +40,8 @@ export function PlayerOverlay({
 }: PlayerOverlayProps): React.JSX.Element | null {
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const insets = useSafeAreaInsets();
-  const resolvedTabBarHeight = tabBarHeight ?? TAB_BAR_HEIGHT + insets.bottom;
+  const floatingBarBottom = Math.max(insets.bottom, Platform.OS === 'android' ? space[3] : space[2]);
+  const resolvedTabBarHeight = tabBarHeight ?? (floatingBarBottom + 64);
   const isReducedMotion = useReducedMotion();
   const { extractAndApplyPalette } = usePalette();
 

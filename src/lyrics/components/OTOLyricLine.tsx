@@ -2,11 +2,11 @@ import { memo } from 'react';
 import { View, StyleSheet, Pressable, Platform, Text } from 'react-native';
 import Animated, {
   useAnimatedStyle,
-  withSpring,
+  withTiming,
   type SharedValue,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
-import { color, space, spring, touchTarget } from '@/design/tokens';
+import { color, space, touchTarget } from '@/design/tokens';
 import type { LyricLine, LyricWord, SupportedScript } from '@/utils/lyrics/types';
 
 export interface OTOLyricLineProps {
@@ -166,12 +166,12 @@ export const OTOLyricLine = memo(function OTOLyricLine({
         ? Math.abs(index - activeIndex) === 1
         : false;
 
-  // Scale: +20% on active line (scale: 1.2), normal on inactive (scale: 1.0)
-  // Zero layout thrashing: uses GPU matrix transform rather than changing fontSize
+  // Scale: +4% on active line (scale: 1.04), normal on inactive (scale: 1.0)
+  // Subtle scaling and timing prevent text clipping and animation stuttering
   const lineAnimatedStyle = useAnimatedStyle(() => {
     'worklet';
-    const targetScale = isActive ? 1.2 : 1.0;
-    const targetOpacity = isActive ? 1.0 : isNearby ? 0.45 : 0.25;
+    const targetScale = isActive ? 1.04 : 1.0;
+    const targetOpacity = isActive ? 1.0 : isNearby ? 0.5 : 0.25;
 
     if (reducedMotion) {
       return {
@@ -181,10 +181,10 @@ export const OTOLyricLine = memo(function OTOLyricLine({
     }
 
     return {
-      opacity: withSpring(targetOpacity, spring.spatial.default),
+      opacity: withTiming(targetOpacity, { duration: 240 }),
       transform: [
         {
-          scale: withSpring(targetScale, spring.spatial.playful),
+          scale: withTiming(targetScale, { duration: 240 }),
         },
       ],
     };
@@ -299,7 +299,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   lineContainer: {
-    maxWidth: '90%',
+    maxWidth: '100%',
   },
   wordsWrapper: {
     flexDirection: 'row',
@@ -320,10 +320,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   wordBaseText: {
-    fontSize: 26,
+    fontSize: 22,
     fontWeight: '700',
-    lineHeight: 34,
-    letterSpacing: -0.4,
+    lineHeight: 30,
+    letterSpacing: -0.3,
   },
   wordSweptOverlay: {
     position: 'absolute',
@@ -333,17 +333,17 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   wordSweptText: {
-    fontSize: 26,
+    fontSize: 22,
     fontWeight: '700',
-    lineHeight: 34,
-    letterSpacing: -0.4,
-    minWidth: 400,
+    lineHeight: 30,
+    letterSpacing: -0.3,
   },
   plainLineText: {
-    fontSize: 26,
+    fontSize: 22,
     fontWeight: '700',
-    lineHeight: 34,
-    letterSpacing: -0.4,
+    lineHeight: 30,
+    letterSpacing: -0.3,
+    flexWrap: 'wrap',
   },
   backgroundVocalContainer: {
     marginTop: space[1],

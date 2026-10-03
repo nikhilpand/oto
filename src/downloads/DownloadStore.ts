@@ -28,6 +28,7 @@ import {
   localUriForTrack,
   getFileSizeBytes,
 } from './DownloadEngine';
+import { resolveLiveStream } from '@/api/otoBackend';
 
 // ─── State Shape ─────────────────────────────────────────────────────────────
 
@@ -39,10 +40,10 @@ interface DownloadState {
   init: () => void;
 
   // Queue
-  enqueue: (track: Track, streamUrl: string, headers?: Record<string, string>) => void;
+  enqueue: (track: Track, streamUrl?: string, headers?: Record<string, string>) => void;
   cancel: (trackId: string) => void;
   remove: (trackId: string) => Promise<void>;
-  retry: (trackId: string, streamUrl: string, headers?: Record<string, string>) => void;
+  retry: (trackId: string, streamUrl?: string, headers?: Record<string, string>) => void;
 
   // Selectors (computed from records)
   getRecord: (trackId: string) => DownloadRecord | undefined;
@@ -58,7 +59,7 @@ const abortControllers = new Map<string, AbortController>();
 
 const pendingQueue: {
   trackId: string;
-  streamUrl: string;
+  streamUrl?: string;
   headers?: Record<string, string>;
 }[] = [];
 
@@ -76,7 +77,7 @@ function drainQueue(store: DownloadState): void {
 
 async function processDownload(
   trackId: string,
-  streamUrl: string,
+  streamUrl: string | undefined,
   headers: Record<string, string> | undefined,
   _store: DownloadState,
 ): Promise<void> {
@@ -90,11 +91,27 @@ async function processDownload(
   useDownloadStore.getState()._refreshRecord(trackId);
 
   try {
+    let activeUrl = streamUrl;
+    let activeHeaders = headers;
+
+    if (!activeUrl || !activeUrl.startsWith('http')) {
+      const resolved = await resolveLiveStream(trackId, {
+        title: record.track.title,
+        artist: record.track.artist,
+        durationMs: record.track.durationMs,
+      });
+      if (!resolved?.streamUrl) {
+        throw new Error(`Failed to resolve stream for track ${trackId}`);
+      }
+      activeUrl = resolved.streamUrl;
+      activeHeaders = resolved.headers;
+    }
+
     const localUri = await downloadInChunks({
       trackId,
-      streamUrl,
+      streamUrl: activeUrl,
       ext: 'm4a',
-      headers,
+      headers: activeHeaders,
       signal: ac.signal,
       onProgress: (progress, _downloaded, _total) => {
         updateDownloadProgress(trackId, progress);
@@ -154,7 +171,7 @@ export const useDownloadStore = create<
     set({ records: getAllDownloads() });
   },
 
-  enqueue(track: Track, streamUrl: string, headers?: Record<string, string>) {
+  enqueue(track: Track, streamUrl?: string, headers?: Record<string, string>) {
     const existing = getDownload(track.id);
     if (existing?.status === 'completed') return;
     if (existing?.status === 'downloading') return;
@@ -214,7 +231,7 @@ export const useDownloadStore = create<
     }));
   },
 
-  retry(trackId: string, streamUrl: string, headers?: Record<string, string>) {
+  retry(trackId: string, streamUrl?: string, headers?: Record<string, string>) {
     const record = getDownload(trackId);
     if (!record) return;
     if (record.status === 'completed' || record.status === 'downloading') return;

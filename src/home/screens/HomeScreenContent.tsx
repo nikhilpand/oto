@@ -51,6 +51,8 @@ export function HomeScreenContent({
     feedData,
     subtitle,
     refreshing,
+    isSignedIn,
+    activeProfile,
     authModalVisible,
     setAuthModalVisible,
     handleRefresh,
@@ -73,7 +75,10 @@ export function HomeScreenContent({
       <SafeAreaView edges={['top']} style={styles.safeArea}>
         <HomeHeader
           greeting="Good music"
+          isSignedIn={isSignedIn}
+          avatarUrl={activeProfile?.avatarUrl}
           onSearchPress={() => router.push('/(tabs)/search' as any)}
+          onProfilePress={() => setAuthModalVisible(true)}
           onSettingsPress={() => router.push('/settings' as any)}
           onStorybookToggle={onStorybookToggle}
         />
@@ -102,6 +107,8 @@ export function HomeScreenContent({
         <HomeHeader
           greeting={feedData.greeting}
           subtitle={subtitle}
+          isSignedIn={isSignedIn}
+          avatarUrl={activeProfile?.avatarUrl}
           onSearchPress={() => router.push('/(tabs)/search' as any)}
           onProfilePress={() => setAuthModalVisible(true)}
           onSettingsPress={() => router.push('/settings' as any)}
