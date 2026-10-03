@@ -1,36 +1,23 @@
 /**
- * Tab layout — Home, Search, Library, Downloads.
+ * Tab layout — Home, Explore, Library, Search.
  *
- * Glass surface tab bar with hide-on-scroll.
- * - Reanimated SharedValue from ScrollOffsetContext (UI thread, zero JS bridge).
- * - On downward scroll: tab bar slides below screen edge.
- * - On upward scroll or near top: slides back in.
- * - Wraps Tabs in an Animated.View so the ENTIRE bar (including native tab content) moves.
+ * Floating capsule navigation bar matching BitChord.
  */
 import { Tabs } from 'expo-router';
-import { StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { color, TAB_BAR_HEIGHT, type } from '@/design/tokens';
-import { HomeIcon, SearchIcon, LibraryIcon, DownloadIcon } from '@/design/components/OTOIcon';
+import { StyleSheet } from 'react-native';
+import { OTOFloatingTabBar } from '@/design/components/OTOFloatingTabBar';
+import { HomeIcon, ExploreIcon, LibraryIcon, SearchIcon } from '@/design/components/OTOIcon';
+import { color } from '@/design/tokens';
 
 export default function TabLayout() {
-  const insets = useSafeAreaInsets();
-  const barHeight = TAB_BAR_HEIGHT + insets.bottom;
-
   return (
     <Tabs
+      tabBar={(props) => <OTOFloatingTabBar {...props} />}
       screenOptions={{
         headerShown: false,
-        tabBarStyle: [
-          styles.tabBar,
-          { height: barHeight, paddingBottom: insets.bottom },
-        ],
-        tabBarActiveTintColor: color.accent.signature,
+        tabBarStyle: styles.tabBar,
+        tabBarActiveTintColor: color.text.primary,
         tabBarInactiveTintColor: color.text.tertiary,
-        tabBarLabelStyle: styles.tabLabel,
-        tabBarBackground: () => (
-          <View style={[StyleSheet.absoluteFill, styles.glass]} />
-        ),
       }}
     >
       <Tabs.Screen
@@ -38,18 +25,18 @@ export default function TabLayout() {
         options={{
           title: 'Home',
           tabBarAccessibilityLabel: 'Home tab',
-          tabBarIcon: ({ color: c, focused }) => (
-            <HomeIcon size={22} color={c} focused={focused} />
+          tabBarIcon: ({ focused }) => (
+            <HomeIcon size={22} focused={focused} />
           ),
         }}
       />
       <Tabs.Screen
-        name="search"
+        name="explore"
         options={{
-          title: 'Search',
-          tabBarAccessibilityLabel: 'Search tab',
-          tabBarIcon: ({ color: c, focused }) => (
-            <SearchIcon size={22} color={c} focused={focused} />
+          title: 'Explore',
+          tabBarAccessibilityLabel: 'Explore tab',
+          tabBarIcon: ({ focused }) => (
+            <ExploreIcon size={22} focused={focused} />
           ),
         }}
       />
@@ -58,19 +45,26 @@ export default function TabLayout() {
         options={{
           title: 'Library',
           tabBarAccessibilityLabel: 'Library tab',
-          tabBarIcon: ({ color: c, focused }) => (
-            <LibraryIcon size={22} color={c} focused={focused} />
+          tabBarIcon: ({ focused }) => (
+            <LibraryIcon size={22} focused={focused} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="search"
+        options={{
+          title: 'Search',
+          tabBarAccessibilityLabel: 'Search tab',
+          tabBarIcon: ({ focused }) => (
+            <SearchIcon size={22} focused={focused} />
           ),
         }}
       />
       <Tabs.Screen
         name="downloads"
         options={{
+          href: null, // Hidden from floating bar, managed inside Library
           title: 'Downloads',
-          tabBarAccessibilityLabel: 'Downloads tab',
-          tabBarIcon: ({ color: c, focused }) => (
-            <DownloadIcon size={22} color={c} focused={focused} />
-          ),
         }}
       />
     </Tabs>
@@ -80,21 +74,9 @@ export default function TabLayout() {
 const styles = StyleSheet.create({
   tabBar: {
     position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
     borderTopWidth: 0,
     elevation: 0,
     backgroundColor: 'transparent',
   },
-  glass: {
-    backgroundColor: color.glass.solidFallback,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: color.glass.highlight,
-  },
-  tabLabel: {
-    fontSize: type.caption[0],
-    fontWeight: '600',
-    letterSpacing: 0.3,
-  },
 });
+

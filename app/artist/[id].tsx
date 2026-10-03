@@ -1,48 +1,50 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ArtistScreen } from '@/detail/screens/ArtistScreen';
+import { DetailStateView } from '@/detail/components/DetailStateView';
 import { useAudioEngine } from '@/audio/AudioContext';
 import { useQueueStore } from '@/store/useQueueStore';
-import { getLiveHomeFeed } from '@/api/otoBackend';
+import { resolveArtist } from '@/detail/services/artistResolutionService';
 import type { Track } from '@/domain/types';
 import type { Artist } from '@/detail/types';
 
 export default function ArtistRoute() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, name: paramName, artworkUrl: paramArtwork } =
+    useLocalSearchParams<{
+      id: string;
+      name?: string;
+      artworkUrl?: string;
+    }>();
+  const router = useRouter();
   const engine = useAudioEngine();
   const playContext = useQueueStore((s) => s.playContext);
+
   const [artist, setArtist] = useState<Artist | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     let isMounted = true;
-    void getLiveHomeFeed().then((feed) => {
-      if (!isMounted || !feed) return;
-      const allTracks = [
-        feed.heroTrack,
-        ...feed.quickPicks,
-        ...feed.continueListening.map((c) => c.track),
-      ];
-      const targetTrack =
-        allTracks.find((t) => t.id === id || t.artist === id) || feed.heroTrack;
-      if (targetTrack) {
-        setArtist({
-          id: targetTrack.artist,
-          name: targetTrack.artist,
-          artworkUrl: targetTrack.artworkUrl,
-          thumbhash: targetTrack.thumbhash,
-          monthlyListeners: 12_400_000,
-          popularTracks: allTracks
-            .filter((t) => t.artist === targetTrack.artist)
-            .slice(0, 5),
-          discography: [],
-          related: [],
-        });
+    setIsLoading(true);
+    setErrorMessage(null);
+
+    void resolveArtist(id, {
+      name: paramName,
+      artworkUrl: paramArtwork,
+    }).then((resolved) => {
+      if (!isMounted) return;
+      setIsLoading(false);
+      if (resolved && resolved.popularTracks.length > 0) {
+        setArtist(resolved);
+      } else {
+        setErrorMessage('Artist details could not be loaded.');
       }
     });
+
     return () => {
       isMounted = false;
     };
-  }, [id]);
+  }, [id, paramName, paramArtwork]);
 
   const handlePlayTrack = useCallback(
     (track: Track) => {
@@ -58,7 +60,22 @@ export default function ArtistRoute() {
     [artist, engine, playContext]
   );
 
-  if (!artist) return null;
+  if (isLoading || errorMessage || !artist) {
+    return (
+      <DetailStateView
+        isLoading={isLoading}
+        errorMessage={errorMessage}
+        title={paramName || 'Artist'}
+        artworkUrl={paramArtwork}
+        onBack={() => router.back()}
+      />
+    );
+  }
 
-  return <ArtistScreen artist={artist} onPlayTrack={handlePlayTrack} />;
+  return (
+    <ArtistScreen
+      artist={artist}
+      onPlayTrack={handlePlayTrack}
+    />
+  );
 }

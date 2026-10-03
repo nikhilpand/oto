@@ -23,7 +23,7 @@ import { usePalette } from '@/design/context/PaletteContext';
 import type { ParsedLyrics, LyricLine } from '@/utils/lyrics/types';
 import { OTOLyricLine } from './OTOLyricLine';
 import { LyricsSkeleton } from './LyricsSkeleton';
-import { SyncIcon, MusicNoteIcon } from '@/design/components/OTOIcon';
+import { SyncIcon, MusicNoteIcon, TranslateIcon } from '@/design/components/OTOIcon';
 
 export interface OTOLyricsProps {
   lyrics?: ParsedLyrics | null;
@@ -34,6 +34,11 @@ export interface OTOLyricsProps {
   isUnavailable?: boolean;
   mode?: 'inline' | 'fullscreen';
   onExpand?: () => void;
+  providerName?: string;
+  onChangeProvider?: () => void;
+  onToggleTranslate?: () => void;
+  isTranslating?: boolean;
+  onSyncAdjust?: () => void;
 }
 
 const VIEWPORT_ANCHOR_RATIO = 0.35; // Keep active line at ~35% from top
@@ -47,6 +52,11 @@ export const OTOLyrics = memo(function OTOLyrics({
   isUnavailable = false,
   mode = 'fullscreen',
   onExpand,
+  providerName,
+  onChangeProvider,
+  onToggleTranslate,
+  isTranslating = false,
+  onSyncAdjust,
 }: OTOLyricsProps): React.JSX.Element {
   const { activePalette } = usePalette();
   const reducedMotion = useReducedMotion();
@@ -302,6 +312,57 @@ export const OTOLyrics = memo(function OTOLyrics({
   // Fullscreen mode: 120Hz synchronized scrolling text with word-level sweep
   return (
     <View style={styles.container} onLayout={handleContainerLayout}>
+      {/* BitChord Top Lyrics Control Bar */}
+      <View style={styles.topControlBar}>
+        <Pressable
+          onPress={() => {
+            void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            onChangeProvider?.();
+          }}
+          style={styles.providerBadge}
+          accessibilityRole="button"
+          accessibilityLabel="Change lyrics provider"
+        >
+          <OTOText variant="caption" colorRole="secondary">
+            Lyrics by{' '}
+            <OTOText variant="caption" weight="bold" colorRole="primary">
+              {providerName || lyrics?.provider || 'BiniLyrics'}
+            </OTOText>
+          </OTOText>
+          <OTOText variant="caption" weight="bold" colorRole="accent" style={styles.changeLink}>
+            Change
+          </OTOText>
+        </Pressable>
+
+        <View style={styles.topControlActions}>
+          <Pressable
+            onPress={() => {
+              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              onToggleTranslate?.();
+            }}
+            style={styles.topControlBtn}
+            accessibilityRole="button"
+            accessibilityLabel="Translate lyrics"
+          >
+            <TranslateIcon
+              size={18}
+              color={isTranslating ? activePalette.dominant || color.accent.signature : color.text.secondary}
+            />
+          </Pressable>
+          <Pressable
+            onPress={() => {
+              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              onSyncAdjust?.();
+            }}
+            style={styles.topControlBtn}
+            accessibilityRole="button"
+            accessibilityLabel="Adjust sync timing"
+          >
+            <SyncIcon size={18} color={color.text.secondary} />
+          </Pressable>
+        </View>
+      </View>
+
       <Animated.ScrollView
         ref={scrollRef}
         showsVerticalScrollIndicator={false}
@@ -360,6 +421,36 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     position: 'relative',
+  },
+  topControlBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: space[3],
+    paddingVertical: space[2],
+    borderBottomWidth: 1,
+    borderBottomColor: color.hairline,
+  },
+  providerBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space[2],
+  },
+  changeLink: {
+    textDecorationLine: 'underline',
+  },
+  topControlActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space[2],
+  },
+  topControlBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: radius.full,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   scrollContent: {
     paddingVertical: space[8],

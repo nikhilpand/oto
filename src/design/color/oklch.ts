@@ -161,8 +161,9 @@ export function rgbToHex(r: number, g: number, b: number): string {
 }
 
 export function hexToRgb(hex: string): [number, number, number] {
-  const clean = hex.replace('#', '');
-  if (clean.length === 3) {
+  if (!hex || typeof hex !== 'string') return [0, 0, 0];
+  const clean = hex.replace('#', '').trim();
+  if (/^[0-9a-fA-F]{3}$/.test(clean)) {
     const c0 = clean[0] ?? '0';
     const c1 = clean[1] ?? '0';
     const c2 = clean[2] ?? '0';
@@ -171,10 +172,13 @@ export function hexToRgb(hex: string): [number, number, number] {
     const b = parseInt(c2 + c2, 16);
     return [r, g, b];
   }
-  const r = parseInt(clean.substring(0, 2), 16) || 0;
-  const g = parseInt(clean.substring(2, 4), 16) || 0;
-  const b = parseInt(clean.substring(4, 6), 16) || 0;
-  return [r, g, b];
+  if (/^[0-9a-fA-F]{6}$/.test(clean)) {
+    const r = parseInt(clean.substring(0, 2), 16);
+    const g = parseInt(clean.substring(2, 4), 16);
+    const b = parseInt(clean.substring(4, 6), 16);
+    return [r, g, b];
+  }
+  return [0, 0, 0];
 }
 
 export function hexToRgbaTuple(hex: string, alpha = 1.0): RgbaTuple {

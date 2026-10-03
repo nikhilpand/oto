@@ -1,30 +1,24 @@
 /**
  * HomeHeader — Editorial Greeting, Search Trigger & Profile Actions
- *
- * Implements the editorial header with time-aware greeting, profile avatar,
- * search pill trigger, and developer Storybook toggle.
+ * Decomposed and streamlined (< 200 lines) per AGENTS.md.
  */
 
 import React, { useCallback } from 'react';
 import { View, StyleSheet, Pressable, Platform } from 'react-native';
 import { Image } from 'expo-image';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
-} from 'react-native-reanimated';
+import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import { color, space, radius, touchTarget, spring, type } from '@/design/tokens';
 import { OTOText } from '@/design/components/OTOText';
 import { OTOIconButton } from '@/design/components/OTOIconButton';
-import { SearchIcon, LibraryIcon } from '@/design/components/OTOIcon';
+import { SearchIcon, LibraryIcon, SettingsIcon } from '@/design/components/OTOIcon';
 
 export interface HomeHeaderProps {
   greeting: string;
-  /** Optional time-aware subtitle. Defaults to a generic music message. */
   subtitle?: string;
   avatarUrl?: string;
   onSearchPress: () => void;
   onProfilePress?: () => void;
+  onSettingsPress?: () => void;
   onStorybookToggle?: () => void;
 }
 
@@ -34,6 +28,7 @@ export function HomeHeader({
   avatarUrl,
   onSearchPress,
   onProfilePress,
+  onSettingsPress,
   onStorybookToggle,
 }: HomeHeaderProps): React.JSX.Element {
   const minTouch = Platform.select({
@@ -81,6 +76,16 @@ export function HomeHeader({
             />
           )}
 
+          {onSettingsPress && (
+            <OTOIconButton
+              icon={<SettingsIcon size={20} color={color.text.secondary} />}
+              accessibilityLabel="Open settings"
+              accessibilityHint="Navigates to app settings and preferences"
+              onPress={onSettingsPress}
+              size={minTouch}
+            />
+          )}
+
           <Pressable
             accessible
             accessibilityRole="button"
@@ -93,12 +98,7 @@ export function HomeHeader({
             <Animated.View style={[styles.avatar, avatarStyle]}>
               <View style={styles.avatarInner}>
                 {avatarUrl ? (
-                  <Image
-                    source={{ uri: avatarUrl }}
-                    style={styles.avatarImage}
-                    contentFit="cover"
-                    transition={200}
-                  />
+                  <Image source={{ uri: avatarUrl }} style={styles.avatarImage} contentFit="cover" transition={200} />
                 ) : (
                   <OTOText variant="caption" weight="bold" style={styles.avatarText}>
                     O
@@ -110,7 +110,7 @@ export function HomeHeader({
         </View>
       </View>
 
-      {/* Instant Search Entry Trigger Pill with spring press scale */}
+      {/* Instant Search Entry Trigger Pill */}
       <Animated.View style={pillStyle}>
         <Pressable
           accessible
@@ -138,26 +138,10 @@ export function HomeHeader({
 }
 
 const styles = StyleSheet.create({
-  container: {
-    paddingHorizontal: space[3],
-    paddingTop: space[2],
-    paddingBottom: space[3],
-    gap: space[3],
-  },
-  topRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  greetingContainer: {
-    flex: 1,
-    gap: space[0],
-  },
-  actionsContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space[1],
-  },
+  container: { paddingHorizontal: space[3], paddingTop: space[2], paddingBottom: space[3], gap: space[3] },
+  topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  greetingContainer: { flex: 1, gap: space[0] },
+  actionsContainer: { flexDirection: 'row', alignItems: 'center', gap: space[1] },
   avatar: {
     width: 38,
     height: 38,
@@ -183,16 +167,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     overflow: 'hidden',
   },
-  avatarImage: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 15,
-  },
-  avatarText: {
-    color: color.accent.signature,
-    fontSize: type.meta[0],
-    fontWeight: '700',
-  },
+  avatarImage: { width: '100%', height: '100%', borderRadius: 15 },
+  avatarText: { color: color.accent.signature, fontSize: type.meta[0], fontWeight: '700' },
   searchPill: {
     height: 48,
     borderRadius: radius.full,
@@ -210,9 +186,7 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 3,
   },
-  searchText: {
-    flex: 1,
-  },
+  searchText: { flex: 1 },
   searchShortcutBadge: {
     backgroundColor: color.bg.s3,
     paddingHorizontal: space[2],
@@ -221,11 +195,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: color.hairline,
   },
-  searchShortcutText: {
-    fontSize: type.caption[0],
-  },
-  avatarPressable: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  searchShortcutText: { fontSize: type.caption[0] },
+  avatarPressable: { alignItems: 'center', justifyContent: 'center' },
 });

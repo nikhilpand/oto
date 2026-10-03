@@ -29,7 +29,7 @@ export interface DownloadState {
   progress?: number; // 0–100, only when status === 'downloading'
 }
 
-export type LibraryItemKind = 'playlist' | 'album' | 'artist';
+export type LibraryItemKind = 'playlist' | 'album' | 'artist' | 'song';
 
 export interface LibraryItem {
   id: string;

@@ -13,6 +13,7 @@ import {
   parsePlaylistSongs,
   parseUserPlaylists,
   parseHomeFeed,
+  parseWatchQueue,
   ParsedHomeSection,
 } from './innertubeParsers';
 import {
@@ -149,13 +150,31 @@ export class InnertubeClient {
   }
 
   /**
+   * Browses a specific YouTube Music browse ID (album, artist, playlist, etc.)
+   */
+  async browse(
+    browseId: string,
+    params?: string,
+    session?: InnertubeSession | null
+  ): Promise<any | null> {
+    const body: Record<string, any> = { browseId };
+    if (params) {
+      body.params = params;
+    }
+    return this.postMusic('browse', body, session);
+  }
+
+  /**
    * Fetches tracks for a specific playlist.
    */
   async fetchPlaylistTracks(
     playlistId: string,
     session?: InnertubeSession | null
   ): Promise<InnertubeSong[]> {
-    const browseId = playlistId.startsWith('VL') ? playlistId : `VL${playlistId}`;
+    const browseId =
+      playlistId.startsWith('VL') || playlistId.startsWith('MPREb')
+        ? playlistId
+        : `VL${playlistId}`;
     const raw = await this.postMusic('browse', { browseId }, session);
     return parsePlaylistSongs(raw);
   }
@@ -170,6 +189,25 @@ export class InnertubeClient {
       session
     );
     return parseHomeFeed(raw);
+  }
+
+  /**
+   * Fetches AutoPlay radio tracks for a video ID from YouTube Music's `next` endpoint.
+   */
+  async fetchRadioQueue(
+    videoId: string,
+    session?: InnertubeSession | null
+  ): Promise<InnertubeSong[]> {
+    const raw = await this.postMusic(
+      'next',
+      {
+        videoId,
+        playlistId: `RDAMVM${videoId}`,
+        isAudioOnly: true,
+      },
+      session
+    );
+    return parseWatchQueue(raw);
   }
 }
 

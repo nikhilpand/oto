@@ -54,51 +54,55 @@ export function unescapeHtml(text: string | null | undefined): string {
  * Maps a raw JioSaavn song object to OTO's Track domain model.
  */
 export function mapJioSaavnSongToTrack(s: any): Track {
-  const pid = String(s.id || s.source_id || '');
+  const song = s && typeof s === 'object' ? s : {};
+  const pid = String(song.id || song.source_id || '');
   const canonicalId = `saavn_${pid}`;
-  const title = unescapeHtml(s.title || s.song || 'Untitled Track');
+  const title = unescapeHtml(song.title || song.song || 'Untitled Track');
 
   // Extract primary artists
   let primaryArtist = 'Unknown Artist';
   const allArtists: string[] = [];
 
-  const artistMap = s.more_info?.artistMap;
+  const artistMap = song.more_info?.artistMap;
   if (artistMap && Array.isArray(artistMap.primary_artists)) {
     for (const a of artistMap.primary_artists) {
-      if (a.name) allArtists.push(unescapeHtml(a.name));
+      if (a?.name) allArtists.push(unescapeHtml(a.name));
     }
   }
 
   if (allArtists.length > 0) {
     primaryArtist = allArtists[0]!;
-  } else if (s.primary_artists) {
-    const raw = unescapeHtml(s.primary_artists);
+  } else if (song.primary_artists) {
+    const raw = unescapeHtml(song.primary_artists);
     const split = raw.split(',').map((x) => x.trim()).filter(Boolean);
     if (split.length > 0) {
       primaryArtist = split[0]!;
       allArtists.push(...split);
     }
-  } else if (s.subtitle) {
-    const sub = unescapeHtml(s.subtitle);
+  } else if (song.subtitle) {
+    const sub = unescapeHtml(song.subtitle);
     primaryArtist = sub.includes('·') ? sub.split('·')[0]!.trim() : sub;
     allArtists.push(primaryArtist);
   }
 
   // High-res artwork (500x500)
-  const rawImage = s.image || s.artwork_url || '';
+  const rawImage = song.image || song.artwork_url || '';
   const artworkUrl = upgradeImageUrl(rawImage);
 
-  // Duration in milliseconds
+  // Duration in milliseconds (guarded against negative, zero, and NaN)
   let durationMs = 195000;
-  const rawDur = s.more_info?.duration || s.duration;
-  if (rawDur && !isNaN(Number(rawDur))) {
-    durationMs = Number(rawDur) * 1000;
+  const rawDur = song.more_info?.duration || song.duration;
+  if (rawDur !== undefined && rawDur !== null) {
+    const parsedDur = Number(rawDur);
+    if (Number.isFinite(parsedDur) && parsedDur > 0) {
+      durationMs = parsedDur * 1000;
+    }
   }
 
-  const album = unescapeHtml(s.more_info?.album || s.album || 'Single');
+  const album = unescapeHtml(song.more_info?.album || song.album || 'Single');
 
   // Cache encrypted URL if available for 0ms future playback
-  const encUrl = s.more_info?.encrypted_media_url || s.encrypted_media_url;
+  const encUrl = song.more_info?.encrypted_media_url || song.encrypted_media_url;
   if (encUrl && typeof encUrl === 'string') {
     encryptedUrlCache.set(canonicalId, encUrl);
     encryptedUrlCache.set(pid, encUrl);
@@ -114,7 +118,7 @@ export function mapJioSaavnSongToTrack(s: any): Track {
     durationMs,
     artworkUrl,
     thumbhash: '3OcRJYB4d3h/iIeHeEh3eIh4h4iH',
-    isExplicit: s.explicit_content === '1',
+    isExplicit: song.explicit_content === '1',
     audioFormat: 'aac',
     bitrate: 320,
   };

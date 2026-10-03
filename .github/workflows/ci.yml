@@ -1,0 +1,43 @@
+name: CI Verification
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - '*'
+      - '!main'
+
+jobs:
+  verify:
+    name: Typecheck, Lint, Test & Bundle Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install NPM Dependencies
+        run: npm install --legacy-peer-deps
+
+      - name: TypeScript Static Analysis
+        run: npm run typecheck
+
+      - name: ESLint Code Quality
+        run: npm run lint
+
+      - name: Jest Test Suite
+        run: npm test -- --watchAll=false
+
+      - name: Expo Doctor Diagnostics
+        run: npx expo-doctor
+
+      - name: Metro & Hermes Bundle Export
+        run: npx expo export --platform android

@@ -26,14 +26,14 @@ import {
   CATALOG_PLAYLISTS,
 } from '../data/searchCatalog';
 
-// ─── Tokenizer ────────────────────────────────────────────────────────
-
 function tokenize(text: string): string[] {
-  return text
+  const stripped = text
     .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, '')
-    .split(/\s+/)
-    .filter(Boolean);
+    .replace(/[^\p{L}\p{N}\s]/gu, '')
+    .trim();
+
+  const effective = stripped.length > 0 ? stripped : text.toLowerCase().trim();
+  return effective.split(/\s+/).filter(Boolean);
 }
 
 function scoreString(candidate: string, queryTokens: string[]): number {

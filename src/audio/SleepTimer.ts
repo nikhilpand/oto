@@ -58,7 +58,8 @@ export function calculateCosineFadeVolume(
   secondsRemaining: number,
   fadeWindowTotal = FADE_OUT_SECONDS
 ): number {
-  if (secondsRemaining <= 0) return 0;
+  if (!Number.isFinite(secondsRemaining) || secondsRemaining <= 0) return 0;
+  if (!Number.isFinite(fadeWindowTotal) || fadeWindowTotal <= 0) return 0;
   if (secondsRemaining >= fadeWindowTotal) return 1.0;
 
   // Fraction elapsed: 0.0 (fade start) -> 1.0 (fade end)

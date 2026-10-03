@@ -41,7 +41,7 @@ export function formatRemainingMsToTime(currentMs: number, durationMs: number): 
  */
 export function clampScrubProgress(dragX: number, trackWidth: number): number {
   'worklet';
-  if (trackWidth <= 0) {
+  if (!Number.isFinite(trackWidth) || trackWidth <= 0 || !Number.isFinite(dragX)) {
     return 0;
   }
   const ratio = dragX / trackWidth;
@@ -53,7 +53,7 @@ export function clampScrubProgress(dragX: number, trackWidth: number): number {
  */
 export function calculateSeekTargetMs(ratio: number, durationMs: number): number {
   'worklet';
-  if (durationMs <= 0) {
+  if (!Number.isFinite(durationMs) || durationMs <= 0 || !Number.isFinite(ratio)) {
     return 0;
   }
   const clampedRatio = Math.max(0, Math.min(1, ratio));

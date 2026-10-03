@@ -24,6 +24,14 @@ Read `docs/SPEC.md` and `docs/DESIGN.md` before any UI work. Read `BITCHORD_RE/`
 7. **If a requirement seems impossible on this stack, say so.** Propose alternatives immediately; do not fake it with non-functional placeholders.
 8. **Smallest living version first.** In early slices, build against a mock catalog and a fake timer-based audio engine (`FakeAudioEngine`) so UI development is never blocked.
 9. **Multi-Skill Activation Mandate.** When executing each roadmap slice (P0–P14), inspect and activate all specialized skills assigned to that slice in [`docs/prompts/README.md`](file:///c:/Users/nikhil/Desktop/projects/music-mobile/docs/prompts/README.md). Combine domain skills (e.g., `react-native-architecture`, `mobile-developer`, `reverse-engineer`, `ui-ux-designer`, `performance-engineer`, `a11y-debugging`, and `test-driven-development`) to ensure architecture, performance, accessibility, and visual elegance are maintained simultaneously.
+10. **BitChord Reference & Hard-Test Loop Mandate:**
+   - **Never Hardcode:** Zero mock data, fake track slices, or hardcoded stubs in production routes or screens. Always wire to live engines, federated providers, or persistent storage.
+   - **BitChord Reference Inspection:** Always inspect the actual Kotlin/C++ source in `BitChord/` and reverse-engineering docs in `BITCHORD_RE/` before writing code.
+   - **Clean-Room Adaptation:** Reimplement algorithms cleanly in TypeScript/React Native adhering to strict architectural boundaries.
+   - **Verify Invariants:** Cross-check API payloads, protobuf filters, state transitions, and fallback behaviors against BitChord's real behavior.
+   - **Advance Quality:** Exceed the reference in performance (UI thread 120Hz worklets), visual fidelity (Skia atmosphere, glass tokens, OKLCH contrast clamp), and accessibility.
+   - **Hard Worst-Case Tests:** Write punishing tests covering edge cases, race conditions, network failures, empty responses, and rapid user interactions.
+   - **Iterative Loop:** Run tests and typecheck continuously in a loop until 100% green with 0 errors and zero regressions.
 
 ---
 

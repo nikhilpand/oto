@@ -23,6 +23,7 @@
     "node_modules",
     "BitChord",
     "BITCHORD_RE",
-    "docs"
+    "docs",
+    "scripts"
   ]
 }

@@ -503,3 +503,434 @@ export function CheckIcon({
     </View>
   );
 }
+
+// ─── 29. Explore / Compass Icon ──────────────────────────────────────────────
+export function ExploreIcon({
+  size = 24,
+  color = tokensColor.text.primary,
+  focused,
+  style,
+}: IconProps) {
+  const iconColor = focused ? tokensColor.accent.signature : (color as string);
+  return (
+    <View
+      style={[{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }, style]}
+      accessibilityRole="image"
+      accessibilityLabel="Explore"
+    >
+      <Ionicons name={focused ? 'compass' : 'compass-outline'} size={size} color={iconColor} />
+    </View>
+  );
+}
+export { ExploreIcon as CompassIcon };
+
+// ─── 30. Wave Logo Icon ──────────────────────────────────────────────────────
+export function WaveLogoIcon({
+  size = 24,
+  color = tokensColor.accent.signature,
+  style,
+}: IconProps) {
+  return (
+    <View
+      style={[{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }, style]}
+      accessibilityRole="image"
+      accessibilityLabel="OTO Logo"
+    >
+      <MaterialCommunityIcons name="waveform" size={size} color={color as string} />
+    </View>
+  );
+}
+
+// ─── 32. Chevron Right Icon ──────────────────────────────────────────────────
+export function ChevronRightIcon({
+  size = 20,
+  color = tokensColor.text.secondary,
+  style,
+}: IconProps) {
+  return (
+    <View
+      style={[{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }, style]}
+      accessibilityRole="image"
+      accessibilityLabel="Navigate forward"
+    >
+      <Ionicons name="chevron-forward" size={size} color={color as string} />
+    </View>
+  );
+}
+
+// ─── 33. Chevron Left Icon ───────────────────────────────────────────────────
+export function ChevronLeftIcon({
+  size = 24,
+  color = tokensColor.text.primary,
+  style,
+}: IconProps) {
+  return (
+    <View
+      style={[{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }, style]}
+      accessibilityRole="image"
+      accessibilityLabel="Go back"
+    >
+      <Ionicons name="chevron-back" size={size} color={color as string} />
+    </View>
+  );
+}
+
+// ─── 34. Settings / Gear Icon ────────────────────────────────────────────────
+export function SettingsIcon({
+  size = 24,
+  color = tokensColor.text.primary,
+  style,
+}: IconProps) {
+  return (
+    <View
+      style={[{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }, style]}
+      accessibilityRole="image"
+      accessibilityLabel="Settings"
+    >
+      <Ionicons name="settings-outline" size={size} color={color as string} />
+    </View>
+  );
+}
+export { SettingsIcon as GearIcon };
+
+// ─── 35. User / Profile Icon ─────────────────────────────────────────────────
+export function UserIcon({
+  size = 20,
+  color = tokensColor.text.secondary,
+  style,
+}: IconProps) {
+  return (
+    <View
+      style={[{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }, style]}
+      accessibilityRole="image"
+      accessibilityLabel="Account"
+    >
+      <Ionicons name="person-outline" size={size} color={color as string} />
+    </View>
+  );
+}
+
+// ─── 36. Volume / Sound Icon ─────────────────────────────────────────────────
+export function VolumeIcon({
+  size = 20,
+  color = tokensColor.text.secondary,
+  style,
+}: IconProps) {
+  return (
+    <View
+      style={[{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }, style]}
+      accessibilityRole="image"
+      accessibilityLabel="Volume"
+    >
+      <Ionicons name="volume-medium-outline" size={size} color={color as string} />
+    </View>
+  );
+}
+
+// ─── 37. Wi-Fi Icon ──────────────────────────────────────────────────────────
+export function WifiIcon({
+  size = 20,
+  color = tokensColor.text.secondary,
+  style,
+}: IconProps) {
+  return (
+    <View
+      style={[{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }, style]}
+      accessibilityRole="image"
+      accessibilityLabel="Wi-Fi"
+    >
+      <Ionicons name="wifi-outline" size={size} color={color as string} />
+    </View>
+  );
+}
+
+// ─── 38. Cellular / Signal Icon ──────────────────────────────────────────────
+export function SignalIcon({
+  size = 20,
+  color = tokensColor.text.secondary,
+  style,
+}: IconProps) {
+  return (
+    <View
+      style={[{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }, style]}
+      accessibilityRole="image"
+      accessibilityLabel="Cellular"
+    >
+      <Ionicons name="cellular-outline" size={size} color={color as string} />
+    </View>
+  );
+}
+
+// ─── 39. Translate Icon ──────────────────────────────────────────────────────
+export function TranslateIcon({
+  size = 20,
+  color = tokensColor.text.secondary,
+  style,
+}: IconProps) {
+  return (
+    <View
+      style={[{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }, style]}
+      accessibilityRole="image"
+      accessibilityLabel="Translate"
+    >
+      <Ionicons name="language-outline" size={size} color={color as string} />
+    </View>
+  );
+}
+
+// ─── 40. Undo / Revert Icon ──────────────────────────────────────────────────
+export function UndoIcon({
+  size = 20,
+  color = tokensColor.text.secondary,
+  style,
+}: IconProps) {
+  return (
+    <View
+      style={[{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }, style]}
+      accessibilityRole="image"
+      accessibilityLabel="Revert"
+    >
+      <Ionicons name="arrow-undo-outline" size={size} color={color as string} />
+    </View>
+  );
+}
+
+// ─── 41. Thumbs Down / Dislike Icon ──────────────────────────────────────────
+export function ThumbsDownIcon({
+  size = 20,
+  color = tokensColor.text.secondary,
+  style,
+}: IconProps) {
+  return (
+    <View
+      style={[{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }, style]}
+      accessibilityRole="image"
+      accessibilityLabel="Dislike"
+    >
+      <Ionicons name="thumbs-down-outline" size={size} color={color as string} />
+    </View>
+  );
+}
+
+// ─── 42. Playlist Plus Icon ──────────────────────────────────────────────────
+export function PlaylistPlusIcon({
+  size = 20,
+  color = tokensColor.text.secondary,
+  style,
+}: IconProps) {
+  return (
+    <View
+      style={[{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }, style]}
+      accessibilityRole="image"
+      accessibilityLabel="Add to playlist"
+    >
+      <MaterialCommunityIcons name="playlist-plus" size={size} color={color as string} />
+    </View>
+  );
+}
+
+// ─── 43. Radio Icon ──────────────────────────────────────────────────────────
+export function RadioIcon({
+  size = 20,
+  color = tokensColor.text.secondary,
+  style,
+}: IconProps) {
+  return (
+    <View
+      style={[{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }, style]}
+      accessibilityRole="image"
+      accessibilityLabel="Start radio"
+    >
+      <Ionicons name="radio-outline" size={size} color={color as string} />
+    </View>
+  );
+}
+
+// ─── 44. Headphones / Solo Icon ──────────────────────────────────────────────
+export function HeadphonesIcon({
+  size = 20,
+  color = tokensColor.text.secondary,
+  style,
+}: IconProps) {
+  return (
+    <View
+      style={[{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }, style]}
+      accessibilityRole="image"
+      accessibilityLabel="Solo mode"
+    >
+      <Ionicons name="headset-outline" size={size} color={color as string} />
+    </View>
+  );
+}
+
+// ─── 45. People / Party Icon ─────────────────────────────────────────────────
+export function PeopleIcon({
+  size = 20,
+  color = tokensColor.text.secondary,
+  style,
+}: IconProps) {
+  return (
+    <View
+      style={[{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }, style]}
+      accessibilityRole="image"
+      accessibilityLabel="Listen together"
+    >
+      <Ionicons name="people-outline" size={size} color={color as string} />
+    </View>
+  );
+}
+
+// ─── 46. Infinity / Autoplay Icon ────────────────────────────────────────────
+export function InfinityIcon({
+  size = 20,
+  color = tokensColor.text.secondary,
+  style,
+}: IconProps) {
+  return (
+    <View
+      style={[{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }, style]}
+      accessibilityRole="image"
+      accessibilityLabel="Autoplay"
+    >
+      <Ionicons name="infinite-outline" size={size} color={color as string} />
+    </View>
+  );
+}
+
+// ─── 47. History / Clock Icon ────────────────────────────────────────────────
+export function HistoryIcon({
+  size = 20,
+  color = tokensColor.text.secondary,
+  style,
+}: IconProps) {
+  return (
+    <View
+      style={[{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }, style]}
+      accessibilityRole="image"
+      accessibilityLabel="History"
+    >
+      <Ionicons name="time-outline" size={size} color={color as string} />
+    </View>
+  );
+}
+
+// ─── 48. Server / WebDAV Icon ────────────────────────────────────────────────
+export function ServerIcon({
+  size = 20,
+  color = tokensColor.text.secondary,
+  style,
+}: IconProps) {
+  return (
+    <View
+      style={[{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }, style]}
+      accessibilityRole="image"
+      accessibilityLabel="Server"
+    >
+      <Ionicons name="server-outline" size={size} color={color as string} />
+    </View>
+  );
+}
+
+// ─── 49. Folder Music Icon ───────────────────────────────────────────────────
+export function FolderMusicIcon({
+  size = 20,
+  color = tokensColor.text.secondary,
+  style,
+}: IconProps) {
+  return (
+    <View
+      style={[{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }, style]}
+      accessibilityRole="image"
+      accessibilityLabel="Local music"
+    >
+      <MaterialCommunityIcons name="folder-music-outline" size={size} color={color as string} />
+    </View>
+  );
+}
+
+// ─── 50. Thumbs Up Icon ──────────────────────────────────────────────────────
+export function ThumbsUpIcon({
+  size = 20,
+  color = tokensColor.text.primary,
+  style,
+}: IconProps) {
+  return (
+    <View
+      style={[{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }, style]}
+      accessibilityRole="image"
+      accessibilityLabel="Thumbs up"
+    >
+      <Ionicons name="thumbs-up" size={size} color={color as string} />
+    </View>
+  );
+}
+
+// ─── 51. Checkmark Icon ──────────────────────────────────────────────────────
+export function CheckmarkIcon({
+  size = 20,
+  color = tokensColor.semantic.success,
+  style,
+}: IconProps) {
+  return (
+    <View
+      style={[{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }, style]}
+      accessibilityRole="image"
+      accessibilityLabel="Checked"
+    >
+      <Ionicons name="checkmark" size={size} color={color as string} />
+    </View>
+  );
+}
+
+// ─── 52. Phone / Device Icon ──────────────────────────────────────────────────
+export function PhoneIcon({
+  size = 20,
+  color = tokensColor.text.primary,
+  style,
+}: IconProps) {
+  return (
+    <View
+      style={[{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }, style]}
+      accessibilityRole="image"
+      accessibilityLabel="Device"
+    >
+      <Ionicons name="phone-portrait-outline" size={size} color={color as string} />
+    </View>
+  );
+}
+
+// ─── 53. Waveform / Audio Pipeline Icon ───────────────────────────────────────
+export function WaveformIcon({
+  size = 20,
+  color = tokensColor.text.primary,
+  style,
+}: IconProps) {
+  return (
+    <View
+      style={[{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }, style]}
+      accessibilityRole="image"
+      accessibilityLabel="Audio pipeline"
+    >
+      <Ionicons name="pulse-outline" size={size} color={color as string} />
+    </View>
+  );
+}
+
+// ─── 54. Speaker Volume Icon ─────────────────────────────────────────────────
+export function SpeakerVolumeIcon({
+  size = 20,
+  color = tokensColor.text.secondary,
+  style,
+}: IconProps) {
+  return (
+    <View
+      style={[{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }, style]}
+      accessibilityRole="image"
+      accessibilityLabel="Speaker volume"
+    >
+      <Ionicons name="volume-medium-outline" size={size} color={color as string} />
+    </View>
+  );
+}
+
+

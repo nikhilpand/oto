@@ -9,6 +9,7 @@ import { create } from 'zustand';
 import { Track } from '@/domain/types';
 import { QueueCoordinator } from '@/domain/queue/QueueCoordinator';
 import { QueueStorage } from '@/domain/queue/queueStorage';
+import { Autoplay } from '@/domain/queue/Autoplay';
 import { QueueItem, QueueSource, QueueState, QueueTier } from '@/domain/queue/types';
 import { RepeatMode } from '@/audio/AudioEngine';
 
@@ -94,6 +95,35 @@ export const useQueueStore = create<QueueStoreState>((set, get) => ({
     const { nextTrack, updatedState } = QueueCoordinator.popNext(currentState, repeatMode);
     set(updatedState);
     QueueStorage.save(updatedState);
+
+    // Continuous Autoplay trigger: when remaining tracks <= 2, fetch follow-up radio tracks
+    const remaining =
+      updatedState.priorityQueue.length +
+      Math.max(0, updatedState.standardQueue.length - (updatedState.currentIndex + 1));
+
+    if (updatedState.currentTrack && remaining <= 2) {
+      const allQueueIds = [
+        ...updatedState.priorityQueue.map((item) => item.id),
+        ...updatedState.standardQueue.map((item) => item.id),
+      ];
+
+      void Autoplay.checkAndFetch({
+        currentTrack: updatedState.currentTrack,
+        remainingInQueue: remaining,
+        allQueueIds,
+      }).then((newTracks) => {
+        if (!newTracks || newTracks.length === 0) return;
+        const newItems = Autoplay.toQueueItems(newTracks);
+        const stateNow = get();
+        const appended = {
+          ...stateNow,
+          standardQueue: [...stateNow.standardQueue, ...newItems],
+        };
+        set(appended);
+        QueueStorage.save(appended);
+      });
+    }
+
     return nextTrack;
   },
 

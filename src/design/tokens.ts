@@ -183,6 +183,24 @@ export const MINI_PLAYER_GAP = 8; // space[2]
 /** Total chrome height at bottom = tab bar + mini player + gap. */
 export const BOTTOM_CHROME_HEIGHT = TAB_BAR_HEIGHT + MINI_PLAYER_HEIGHT + MINI_PLAYER_GAP;
 
+/** Width breakpoints (dp) for compact / medium / expanded size classes. */
+export const breakpoint = {
+  medium: 600,
+  expanded: 840,
+} as const;
+
+/** Max readable content width on large screens (dp). */
+export const MAX_CONTENT_WIDTH = 720;
+
+/** Max artwork edge in the full player on large screens (dp). */
+export const MAX_PLAYER_ARTWORK = 440;
+
+/**
+ * Minimum bottom clearance on Android. Edge-to-edge gesture navigation can
+ * report a 0 inset while the gesture pill still overlaps the tab labels.
+ */
+export const ANDROID_MIN_BOTTOM_INSET = 16; // space[4]
+
 
 // ─── Aliases & Helper Types ──────────────────────────────────────────
 

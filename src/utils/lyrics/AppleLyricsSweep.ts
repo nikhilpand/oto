@@ -71,7 +71,7 @@ export function revealedChars(line: LyricLine, positionMs: number): number {
  * rising over 250ms from start and falling over 250ms past end.
  */
 export function wordLift(word: LyricWord, positionMs: number, riseMs = RISE_MS): number {
-  if (positionMs <= word.startMs - riseMs || positionMs >= word.endMs + riseMs) {
+  if (positionMs <= word.startMs || positionMs >= word.endMs + riseMs) {
     return 0;
   }
 

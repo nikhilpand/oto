@@ -10,7 +10,10 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "jest",
-    "doctor": "npx expo-doctor"
+    "doctor": "npx expo-doctor",
+    "build:export": "expo export --platform android",
+    "build:android:debug": "expo run:android --variant debug",
+    "build:android:release": "expo run:android --variant release"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.1.1",

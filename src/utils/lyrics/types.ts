@@ -35,4 +35,7 @@ export interface ParsedLyrics {
   isLineSynced: boolean;
   hasDuet: boolean;
   script: SupportedScript;
+  provider?: string;
+  isTranslated?: boolean;
+  translatedLines?: LyricLine[];
 }

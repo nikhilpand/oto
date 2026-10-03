@@ -13,6 +13,7 @@ import { useQueueStore } from '@/store/useQueueStore';
 import { QualityTierProvider } from '@/design/hooks/useQualityTier';
 import { ScrollOffsetProvider } from '@/design/context/ScrollOffsetContext';
 import { useDownloadStore } from '@/downloads/DownloadStore';
+import { LastPlayed } from '@/store/LastPlayed';
 
 // LogBox.ignoreAllLogs(true);
 
@@ -31,9 +32,30 @@ export default function RootLayout() {
     // Init download manifest DB
     useDownloadStore.getState().init();
 
-    if (queueStore.currentTrack && !playbackStore.currentTrack) {
+    // Restore last played session on cold start
+    const snapshot = LastPlayed.restore();
+    if (snapshot && !queueStore.currentTrack) {
+      queueStore.playOneOff(snapshot.track);
+      playbackStore.setTrack(snapshot.track);
+    } else if (queueStore.currentTrack && !playbackStore.currentTrack) {
       playbackStore.setTrack(queueStore.currentTrack);
     }
+
+    // Auto-persist last played track on queue mutations
+    const unsubscribe = useQueueStore.subscribe((state) => {
+      if (state.currentTrack) {
+        LastPlayed.save({
+          track: state.currentTrack,
+          positionMs: 0,
+          wasPlaying: false,
+          isShuffled: state.isShuffled,
+        });
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
   }, []);
   return (
     <GestureHandlerRootView style={styles.root}>

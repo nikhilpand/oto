@@ -39,7 +39,7 @@ export const VERSION_KEYWORDS = [
 ] as const;
 
 const PACKAGING_REGEX =
-  /[\(\[](?:(?:official\s+)?(?:music\s+video|video|audio|visualizer|lyric\s+video|lyrics|remastered|remaster|hd|4k|explicit|clean)|from\s+.*?)[\)\]]|\s*(?:feat\.|ft\.|featuring)\s+[^()[\]]+/gi;
+  /[\(\[](?:(?:official\s+)?(?:music\s+video|video|audio|visualizer|lyric\s+video|lyrics|remastered(?:\s+\d+)?|remaster(?:\s+\d+)?|(?:\d+\s+)?remaster(?:ed)?|hd(?:\s+4k)?|4k|explicit|clean)|from\s+.*?)[\)\]]|[\(\[]\s*(?:feat\.|ft\.|featuring)\s+[^()\[\]]+[\)\]]|\s*(?:feat\.|ft\.|featuring)\s+[^()[\]]+/gi;
 
 export interface MatchTarget {
   title: string;
@@ -91,9 +91,12 @@ export function extractVersions(title: string): Set<string> {
 /**
  * Strips packaging metadata, version brackets, and punctuation,
  * returning the canonical core title for linguistic comparison.
+ * Supports all international Unicode scripts (Hindi, Japanese, Cyrillic, etc.)
  */
 export function cleanTitle(title: string): string {
-  let cleaned = unescapeString(title).replace(PACKAGING_REGEX, '');
+  let cleaned = unescapeString(title)
+    .replace(PACKAGING_REGEX, '')
+    .replace(/[\(\[\{]\s*[\)\]\}]/g, '');
 
   for (const kw of VERSION_KEYWORDS) {
     const reg = new RegExp(
@@ -103,11 +106,16 @@ export function cleanTitle(title: string): string {
     cleaned = cleaned.replace(reg, '');
   }
 
-  return cleaned
+  cleaned = cleaned.replace(/[\(\[\{]\s*[\)\]\}]/g, '').trim();
+
+  const unicodeCleaned = cleaned
     .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, '')
+    .replace(/[^\p{L}\p{N}\s]/gu, '')
     .replace(/\s+/g, ' ')
     .trim();
+
+  // If stripping left empty (e.g., song title is pure punctuation like "???" or "$$$"), fallback to original cleaned
+  return unicodeCleaned.length > 0 ? unicodeCleaned : cleaned.toLowerCase().trim();
 }
 
 /**

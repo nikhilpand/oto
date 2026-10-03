@@ -8,6 +8,17 @@ on:
       - 'v*'
   workflow_dispatch:
     inputs:
+      build_target:
+        description: 'Build Target'
+        required: true
+        type: choice
+        options:
+          - all
+          - universal
+          - arm64
+          - aab
+          - debug
+        default: all
       publish_release:
         description: 'Publish as GitHub Release'
         required: true
@@ -24,7 +35,7 @@ permissions:
 
 jobs:
   build-android:
-    name: Build Android APK
+    name: Build Android (${{ inputs.build_target || 'all' }})
     runs-on: ubuntu-latest
 
     steps:
@@ -58,34 +69,89 @@ jobs:
       - name: TypeScript & Test Verification
         run: |
           npx tsc --noEmit
+          npm run lint
           npm test -- --watchAll=false
+          npx expo-doctor
 
       - name: Prebuild Native Android Project
         run: npx expo prebuild --platform android --clean --no-install
 
-      - name: Build Android APK
-        working-directory: android
+      - name: Build Android Targets
         run: |
+          mkdir -p build-artifacts
+          TARGET="${{ inputs.build_target || 'all' }}"
+          echo "Selected build target: $TARGET"
+
+          cd android
           chmod +x gradlew
-          ./gradlew assembleRelease --no-daemon || ./gradlew assembleDebug --no-daemon
 
-      - name: Locate and Package APK
-        id: package_apk
-        run: |
-          APK_PATH=$(find android/app/build/outputs/apk -name "*.apk" | head -n 1)
-          if [ -z "$APK_PATH" ]; then
-            echo "Error: No APK found after build!"
-            exit 1
+          # 1. Universal Release APK (All ABIs)
+          if [ "$TARGET" = "all" ] || [ "$TARGET" = "universal" ]; then
+            echo "==> Building Universal Release APK..."
+            ./gradlew assembleRelease --no-daemon
+            APK_PATH=$(find app/build/outputs/apk/release -name "*.apk" | head -n 1)
+            if [ -n "$APK_PATH" ]; then
+              cp "$APK_PATH" ../build-artifacts/OTO-Music-universal.apk
+              echo "Universal APK created."
+            fi
           fi
-          echo "Found APK at: $APK_PATH"
-          cp "$APK_PATH" OTO-Music.apk
-          echo "apk_path=OTO-Music.apk" >> $GITHUB_OUTPUT
 
-      - name: Upload APK Artifact
+          # 2. ARM64-v8a Release APK (Modern Android 64-bit)
+          if [ "$TARGET" = "all" ] || [ "$TARGET" = "arm64" ]; then
+            echo "==> Building ARM64-v8a Release APK..."
+            ./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a --no-daemon
+            APK_PATH=$(find app/build/outputs/apk/release -name "*.apk" | head -n 1)
+            if [ -n "$APK_PATH" ]; then
+              cp "$APK_PATH" ../build-artifacts/OTO-Music-arm64-v8a.apk
+              echo "ARM64 APK created."
+            fi
+          fi
+
+          # 3. ARMv7 Release APK (Legacy 32-bit devices)
+          if [ "$TARGET" = "all" ]; then
+            echo "==> Building ARMv7 Release APK..."
+            ./gradlew assembleRelease -PreactNativeArchitectures=armeabi-v7a --no-daemon
+            APK_PATH=$(find app/build/outputs/apk/release -name "*.apk" | head -n 1)
+            if [ -n "$APK_PATH" ]; then
+              cp "$APK_PATH" ../build-artifacts/OTO-Music-armeabi-v7a.apk
+              echo "ARMv7 APK created."
+            fi
+          fi
+
+          # 4. Debug APK (For testing & development)
+          if [ "$TARGET" = "all" ] || [ "$TARGET" = "debug" ]; then
+            echo "==> Building Debug APK..."
+            ./gradlew assembleDebug --no-daemon
+            APK_PATH=$(find app/build/outputs/apk/debug -name "*.apk" | head -n 1)
+            if [ -n "$APK_PATH" ]; then
+              cp "$APK_PATH" ../build-artifacts/OTO-Music-debug.apk
+              echo "Debug APK created."
+            fi
+          fi
+
+          # 5. Android App Bundle (Google Play Store format)
+          if [ "$TARGET" = "all" ] || [ "$TARGET" = "aab" ]; then
+            echo "==> Building Android App Bundle (AAB)..."
+            ./gradlew bundleRelease --no-daemon
+            AAB_PATH=$(find app/build/outputs/bundle/release -name "*.aab" | head -n 1)
+            if [ -n "$AAB_PATH" ]; then
+              cp "$AAB_PATH" ../build-artifacts/OTO-Music.aab
+              echo "AAB created."
+            fi
+          fi
+
+          cd ..
+          cd build-artifacts
+          echo "==> Generating SHA256 Checksums..."
+          sha256sum * > SHA256SUMS.txt
+          echo "==> Build Artifacts Summary:"
+          ls -lh
+
+      - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: OTO-Music-APK
-          path: OTO-Music.apk
+          name: OTO-Music-Builds
+          path: build-artifacts/*
           retention-days: 14
 
       - name: Determine Release Information
@@ -113,6 +179,6 @@ jobs:
           draft: false
           prerelease: false
           generate_release_notes: true
-          files: OTO-Music.apk
+          files: build-artifacts/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

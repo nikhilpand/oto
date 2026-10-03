@@ -49,7 +49,13 @@ export interface MoodGenreItem {
 
 export interface HomeFeedData {
   greeting: string;
+  /** Primary featured track (legacy single-hero fallback). */
   heroTrack: Track;
+  /**
+   * Up to 5 tracks for the SpotlightFlowSection snap carousel.
+   * Falls back to [heroTrack] when not present.
+   */
+  spotlightTracks?: Track[];
   continueListening: ContinueListeningItem[];
   madeForYou: MadeForYouItem[];
   quickPicks: Track[];

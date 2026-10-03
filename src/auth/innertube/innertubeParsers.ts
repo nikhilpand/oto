@@ -352,3 +352,45 @@ export function parseHomeFeed(root: any): ParsedHomeSection[] {
   return sections;
 }
 
+/**
+ * Tracks of a watch queue (`next` response) — the AutoPlay radio mix.
+ * Clean-room adaptation of BitChord's InnertubeParser.parseWatchQueue.
+ */
+export function parseWatchQueue(root: any): InnertubeSong[] {
+  if (!root) return [];
+  const renderers = collectRenderers(root, 'playlistPanelVideoRenderer');
+  const out = new Map<string, InnertubeSong>();
+
+  for (const renderer of renderers) {
+    const videoId = renderer.videoId;
+    if (!videoId || typeof videoId !== 'string') continue;
+    const title = runsText(renderer.title);
+    if (!title.trim()) continue;
+
+    const bylineRuns = Array.isArray(renderer.longBylineText?.runs)
+      ? renderer.longBylineText.runs
+      : [];
+    const bylineTexts = bylineRuns.map((r: any) => r?.text || '');
+    let artist = '';
+    for (const piece of bylineTexts) {
+      if (piece.includes('•')) break;
+      artist += piece;
+    }
+    artist = artist.trim() || 'Unknown Artist';
+
+    const durationText = runsText(renderer.lengthText) || undefined;
+    const isExplicit = hasExplicitBadge(renderer);
+
+    out.set(videoId, {
+      videoId,
+      title,
+      artist,
+      thumbnailUrl: bestThumbnail(renderer.thumbnail?.thumbnails),
+      durationText,
+      isExplicit,
+    });
+  }
+
+  return Array.from(out.values());
+}
+

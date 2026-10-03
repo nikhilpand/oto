@@ -1,42 +1,52 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { AlbumScreen } from '@/detail/screens/AlbumScreen';
+import { DetailStateView } from '@/detail/components/DetailStateView';
 import { useAudioEngine } from '@/audio/AudioContext';
 import { useQueueStore } from '@/store/useQueueStore';
-import { getLiveHomeFeed } from '@/api/otoBackend';
+import { resolveAlbum } from '@/detail/services/albumResolutionService';
 import type { Track } from '@/domain/types';
 import type { Album } from '@/detail/types';
 
 export default function AlbumRoute() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, title: paramTitle, artist: paramArtist, artworkUrl: paramArtwork } =
+    useLocalSearchParams<{
+      id: string;
+      title?: string;
+      artist?: string;
+      artworkUrl?: string;
+    }>();
+  const router = useRouter();
   const engine = useAudioEngine();
   const playContext = useQueueStore((s) => s.playContext);
+
   const [album, setAlbum] = useState<Album | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     let isMounted = true;
-    void getLiveHomeFeed().then((feed) => {
-      if (!isMounted || !feed) return;
-      const nr = feed.newReleases.find((r) => r.id === id) || feed.newReleases[0];
-      if (nr && nr.tracks.length > 0) {
-        setAlbum({
-          id: nr.id,
-          title: nr.title,
-          artist: nr.artist,
-          artworkUrl: nr.artworkUrl,
-          thumbhash: nr.thumbhash,
-          year: 2024,
-          totalTracks: nr.tracks.length,
-          durationMs: nr.tracks.reduce((acc, t) => acc + t.durationMs, 0),
-          tracks: nr.tracks,
-          isExplicit: false,
-        });
+    setIsLoading(true);
+    setErrorMessage(null);
+
+    void resolveAlbum(id, {
+      title: paramTitle,
+      artist: paramArtist,
+      artworkUrl: paramArtwork,
+    }).then((resolved) => {
+      if (!isMounted) return;
+      setIsLoading(false);
+      if (resolved && resolved.tracks.length > 0) {
+        setAlbum(resolved);
+      } else {
+        setErrorMessage('Album could not be loaded or is empty.');
       }
     });
+
     return () => {
       isMounted = false;
     };
-  }, [id]);
+  }, [id, paramTitle, paramArtist, paramArtwork]);
 
   const handlePlayTrack = useCallback(
     (track: Track) => {
@@ -73,7 +83,18 @@ export default function AlbumRoute() {
     void engine.load(shuffled[0]!, true);
   }, [album, engine, playContext]);
 
-  if (!album) return null;
+  if (isLoading || errorMessage || !album) {
+    return (
+      <DetailStateView
+        isLoading={isLoading}
+        errorMessage={errorMessage}
+        title={paramTitle || 'Album'}
+        subtitle={paramArtist}
+        artworkUrl={paramArtwork}
+        onBack={() => router.back()}
+      />
+    );
+  }
 
   return (
     <AlbumScreen
