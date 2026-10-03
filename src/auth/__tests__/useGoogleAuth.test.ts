@@ -1,3 +1,13 @@
+jest.mock('react-native', () => ({
+  Linking: {
+    openURL: jest.fn().mockResolvedValue(true),
+  },
+  Platform: {
+    OS: 'android',
+  },
+  NativeModules: {},
+}));
+
 jest.mock('../native/YtMusicAuthBridge', () => ({
   YtMusicAuthBridge: {
     isAvailable: jest.fn(() => false),
@@ -118,8 +128,9 @@ describe('useGoogleAuth Hook', () => {
 
     expect(result.current.isSignedIn).toBe(true);
 
-    act(() => {
+    await act(async () => {
       result.current.signOut();
+      await new Promise((r) => setTimeout(r, 20));
     });
 
     expect(result.current.isSignedIn).toBe(false);
@@ -153,6 +164,7 @@ describe('useGoogleAuth Hook', () => {
     let res: { success: boolean; error?: string } = { success: false };
     await act(async () => {
       res = await result.current.loginWithGoogle();
+      await new Promise((r) => setTimeout(r, 20));
     });
 
     expect(res.success).toBe(true);

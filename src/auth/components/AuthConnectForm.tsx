@@ -19,7 +19,7 @@ export interface AuthConnectFormProps {
   cookieInput: string;
   onCookieChange: (v: string) => void;
   isLoading: boolean;
-  isNativeWebSignInAvailable: boolean;
+  isNativeWebSignInAvailable?: boolean;
   error: string | null;
   onGoogleSignIn: () => void;
   onConnect: () => void;
@@ -30,7 +30,7 @@ export function AuthConnectForm({
   cookieInput,
   onCookieChange,
   isLoading,
-  isNativeWebSignInAvailable,
+  isNativeWebSignInAvailable: _isNativeWebSignInAvailable,
   error,
   onGoogleSignIn,
   onConnect,
@@ -40,30 +40,28 @@ export function AuthConnectForm({
 
   return (
     <View style={styles.connectSection}>
-      {isNativeWebSignInAvailable && (
-        <View style={styles.nativeSignInWrapper}>
-          <Pressable
-            style={[styles.googleSignInButton, isLoading && styles.buttonDisabled]}
-            onPress={onGoogleSignIn}
-            disabled={isLoading}
-            accessibilityRole="button"
-            accessibilityLabel="Sign in with Google Account"
-          >
-            {isLoading
-              ? <ActivityIndicator size="small" color="#FFFFFF" />
-              : <OTOText variant="body" weight="bold" style={styles.googleButtonText}>Sign In with Google</OTOText>}
-          </Pressable>
-          <OTOText variant="caption" colorRole="tertiary" style={styles.nativeSignInHint}>
-            BitChord protocol: In-app official Google login with Passkeys, 2FA & automatic session capture.
-          </OTOText>
+      <View style={styles.nativeSignInWrapper}>
+        <Pressable
+          style={[styles.googleSignInButton, isLoading && styles.buttonDisabled]}
+          onPress={onGoogleSignIn}
+          disabled={isLoading}
+          accessibilityRole="button"
+          accessibilityLabel="Sign in with Google Account"
+        >
+          {isLoading
+            ? <ActivityIndicator size="small" color="#FFFFFF" />
+            : <OTOText variant="body" weight="bold" style={styles.googleButtonText}>Sign In with Google</OTOText>}
+        </Pressable>
+        <OTOText variant="caption" colorRole="tertiary" style={styles.nativeSignInHint}>
+          In-app Google login with Passkeys, 2FA & automatic session capture.
+        </OTOText>
 
-          <View style={styles.dividerRow}>
-            <View style={styles.dividerLine} />
-            <OTOText variant="meta" colorRole="disabled" style={styles.dividerText}>OR ENTER COOKIE MANUALLY</OTOText>
-            <View style={styles.dividerLine} />
-          </View>
+        <View style={styles.dividerRow}>
+          <View style={styles.dividerLine} />
+          <OTOText variant="meta" colorRole="disabled" style={styles.dividerText}>OR ENTER COOKIE MANUALLY</OTOText>
+          <View style={styles.dividerLine} />
         </View>
-      )}
+      </View>
 
       <OTOText variant="body" colorRole="secondary" style={styles.instructions}>
         Paste your YouTube Music session cookie below (containing <OTOText weight="bold">SAPISID</OTOText>).

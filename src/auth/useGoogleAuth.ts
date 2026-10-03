@@ -11,6 +11,7 @@ import { extractSapisid } from './innertube/crypto';
 import { innertubeClient } from './innertube/InnertubeClient';
 import { InnertubePlaylist, InnertubeSession, InnertubeSong } from './innertube/types';
 
+import { Linking } from 'react-native';
 import { YtMusicAuthBridge } from './native/YtMusicAuthBridge';
 
 export interface UseGoogleAuthResult {
@@ -164,9 +165,14 @@ export function useGoogleAuth(): UseGoogleAuthResult {
   // Login via native in-app Google Sign-In WebView (BitChord protocol)
   const loginWithGoogle = useCallback(async (): Promise<{ success: boolean; error?: string }> => {
     if (!YtMusicAuthBridge.isAvailable()) {
+      try {
+        await Linking.openURL(
+          'https://accounts.google.com/ServiceLogin?ltmpl=music&service=youtube&passive=true&continue=https%3A%2F%2Fmusic.youtube.com%2F'
+        );
+      } catch {}
       return {
         success: false,
-        error: 'In-app Google Sign-In WebView is available on Android builds.',
+        error: 'Opening Google Sign-In in browser. Once logged in, copy and paste your cookie string below.',
       };
     }
 
@@ -205,14 +211,20 @@ export function useGoogleAuth(): UseGoogleAuthResult {
       // Attempt to fetch live account profile from Innertube, with graceful fallback
       console.log('[OTO_AUTH] Requesting account profile from Innertube account/account_menu...');
       let account: any = null;
+      let timeoutId: ReturnType<typeof setTimeout> | undefined;
+      const timeoutPromise = new Promise<null>((resolve) => {
+        timeoutId = setTimeout(() => resolve(null), 5000);
+      });
       try {
         account = await Promise.race([
           innertubeClient.fetchAccountProfile(tentativeSession),
-          new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000)),
+          timeoutPromise,
         ]);
         console.log('[OTO_AUTH] Profile fetch completed:', account ? account.name : 'null (using default)');
       } catch (e: any) {
         console.warn('[OTO_AUTH] fetchAccountProfile error, proceeding with session fallback:', e?.message);
+      } finally {
+        if (timeoutId) clearTimeout(timeoutId);
       }
 
       const name = account?.name || 'YouTube Music User';
