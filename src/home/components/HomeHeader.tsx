@@ -71,8 +71,13 @@ export function HomeHeader({
               accessible
               accessibilityRole="button"
               accessibilityLabel="Sign in with Google Account"
+              accessibilityHint="Opens Google and YouTube Music authentication"
               onPress={onProfilePress}
-              style={styles.signInBadge}
+              hitSlop={Platform.select({ ios: 6, default: 8 })}
+              style={({ pressed }) => [
+                styles.signInBadge,
+                pressed && { opacity: 0.8, transform: [{ scale: 0.96 }] },
+              ]}
             >
               <View style={styles.googleIconCircle}>
                 <OTOText variant="caption" weight="bold" style={styles.googleIconText}>G</OTOText>
@@ -151,11 +156,11 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     borderRadius: 10,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: color.text.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  googleIconText: { color: '#0E0E12', fontSize: 11, fontWeight: '900' },
+  googleIconText: { color: color.bg.base, fontSize: 11, fontWeight: '900' },
   signInText: { fontSize: type.caption[0], letterSpacing: 0.2 },
   avatar: {
     width: 38,

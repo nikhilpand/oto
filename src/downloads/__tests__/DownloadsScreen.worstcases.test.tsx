@@ -1,6 +1,9 @@
 import React from 'react';
 import TestRenderer, { act } from 'react-test-renderer';
 
+import { DownloadsScreenContent } from '../screens/DownloadsScreenContent';
+import { useDownloadStore } from '../DownloadStore';
+
 // Ensure React is marked as used
 void React.version;
 
@@ -35,9 +38,6 @@ jest.mock('@expo/vector-icons', () => {
     MaterialCommunityIcons: (props: any) => React.createElement('MaterialCommunityIcons', props),
   };
 });
-
-import { DownloadsScreenContent } from '../screens/DownloadsScreenContent';
-import { useDownloadStore } from '../DownloadStore';
 
 jest.mock('@shopify/flash-list', () => {
   const React = require('react');

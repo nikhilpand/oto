@@ -11,7 +11,7 @@ import React from 'react';
 import { View, StyleSheet, Pressable } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
-import { radius, space } from '@/design/tokens';
+import { radius, space, color, shadow } from '@/design/tokens';
 
 import { OTOText } from '@/design/components/OTOText';
 import { OTOArtwork } from '@/design/components/OTOArtwork';
@@ -91,7 +91,7 @@ const styles = StyleSheet.create({
     zIndex: 2,
   },
   title: {
-    color: '#FFFFFF',
+    color: color.text.primary,
     fontSize: 15,
     lineHeight: 19,
     letterSpacing: 0.2,
@@ -101,11 +101,7 @@ const styles = StyleSheet.create({
     right: -8,
     bottom: -8,
     transform: [{ rotate: '25deg' }],
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 6,
-    elevation: 4,
+    ...shadow.card,
   },
   artwork: {
     width: 64,

@@ -224,9 +224,13 @@ export async function probeCdnStreamUrl(url: string, timeoutMs = 1500): Promise<
       },
       signal: controller.signal,
     });
-    return res.status === 200 || res.status === 206;
+    // Only step down if CDN explicitly reports 404 Not Found (missing asset)
+    if (res.status === 404) {
+      return false;
+    }
+    return true;
   } catch {
-    // If probe times out or is offline, assume true to not block audio playback
+    // If probe times out or network restricts range requests, assume true to not block playback
     return true;
   } finally {
     clearTimeout(timeoutId);

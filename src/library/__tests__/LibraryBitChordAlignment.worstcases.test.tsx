@@ -1,6 +1,9 @@
 import React from 'react';
 import TestRenderer, { act } from 'react-test-renderer';
 
+import { ListeningExperienceCarousel } from '../components/ListeningExperienceCarousel';
+import { OnDeviceHubSection } from '../components/OnDeviceHubSection';
+
 // Ensure React is marked as used
 void React.version;
 
@@ -37,9 +40,6 @@ jest.mock('@expo/vector-icons', () => {
     MaterialCommunityIcons: (props: any) => React.createElement('MaterialCommunityIcons', props),
   };
 });
-
-import { ListeningExperienceCarousel } from '../components/ListeningExperienceCarousel';
-import { OnDeviceHubSection } from '../components/OnDeviceHubSection';
 
 describe('Library BitChord Alignment worst-case tests', () => {
   it('renders ListeningExperienceCarousel with minutes listened and top artist matching BitChord', () => {

@@ -1,3 +1,9 @@
+import React from 'react';
+import TestRenderer, { act } from 'react-test-renderer';
+import { useGoogleAuth, UseGoogleAuthResult } from '../useGoogleAuth';
+import { GoogleAuthStore } from '../GoogleAuthStore';
+import { innertubeClient } from '../innertube/InnertubeClient';
+
 jest.mock('react-native', () => ({
   Linking: {
     openURL: jest.fn().mockResolvedValue(true),
@@ -15,12 +21,6 @@ jest.mock('../native/YtMusicAuthBridge', () => ({
     clearGoogleCookies: jest.fn().mockResolvedValue(true),
   },
 }));
-
-import React from 'react';
-import TestRenderer, { act } from 'react-test-renderer';
-import { useGoogleAuth, UseGoogleAuthResult } from '../useGoogleAuth';
-import { GoogleAuthStore } from '../GoogleAuthStore';
-import { innertubeClient } from '../innertube/InnertubeClient';
 
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
 

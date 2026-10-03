@@ -15,11 +15,11 @@ import {
   SearchFilterType,
   SEARCH_PROTOBUF_PARAMS,
 } from './federatedSearchEngine';
-export { SEARCH_PROTOBUF_PARAMS };
 import { SearchFederator } from './searchFederator';
 import { SearchResults, TopResult, SearchAlbum, SearchArtist, SearchPlaylist } from '../types';
 import { Track } from '@/domain/types';
 import { upgradeArtworkUrl } from '@/utils/imageQuality';
+export { SEARCH_PROTOBUF_PARAMS };
 
 export type SearchFilterChip = 'All' | 'Songs' | 'Videos' | 'Albums' | 'Artists' | 'Playlists';
 

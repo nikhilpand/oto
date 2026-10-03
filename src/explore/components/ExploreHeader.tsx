@@ -135,7 +135,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   userAvatarText: {
-    color: '#000000',
+    color: color.bg.base,
     fontSize: 10,
   },
   userName: {

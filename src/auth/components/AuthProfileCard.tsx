@@ -80,13 +80,28 @@ export function AuthProfileCard({
 
       {/* Actions */}
       <View style={styles.buttonStack}>
-        <Pressable style={[styles.primaryButton, isLoading && styles.buttonDisabled]} onPress={onSync} disabled={isLoading}>
+        <Pressable
+          style={[styles.primaryButton, isLoading && styles.buttonDisabled]}
+          onPress={onSync}
+          disabled={isLoading}
+          accessible
+          accessibilityRole="button"
+          accessibilityLabel="Sync data now"
+          accessibilityHint="Syncs liked songs and playlists with YouTube Music"
+        >
           {isLoading
-            ? <ActivityIndicator size="small" color="#000" />
+            ? <ActivityIndicator size="small" color={color.bg.base} />
             : <OTOText variant="body" weight="bold" style={styles.primaryButtonText}>Sync Data Now</OTOText>}
         </Pressable>
 
-        <Pressable style={styles.secondaryButton} onPress={onSignOut}>
+        <Pressable
+          style={styles.secondaryButton}
+          onPress={onSignOut}
+          accessible
+          accessibilityRole="button"
+          accessibilityLabel="Disconnect account"
+          accessibilityHint="Signs out and removes session cookies"
+        >
           <OTOText variant="body" style={styles.secondaryButtonText}>Disconnect Account</OTOText>
         </Pressable>
 
@@ -134,7 +149,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.full, alignItems: 'center', justifyContent: 'center',
   },
   buttonDisabled: { opacity: 0.6 },
-  primaryButtonText: { color: '#000000' },
+  primaryButtonText: { color: color.bg.base },
   secondaryButton: {
     height: 44, backgroundColor: 'transparent',
     borderRadius: radius.full, alignItems: 'center', justifyContent: 'center',

@@ -16,19 +16,25 @@ export function useNowPlayingLyrics(currentTrack: Track | null) {
   const [isTranslated, setIsTranslated] = useState(false);
   const [currentProvider, setCurrentProvider] = useState<LyricsProviderName>('BiniLyrics');
 
+  const trackId = currentTrack?.id;
+  const trackTitle = currentTrack?.title;
+  const trackArtist = currentTrack?.artist;
+  const trackDuration = currentTrack?.durationMs;
+  const trackAlbum = currentTrack?.album;
+
   useEffect(() => {
     let isMounted = true;
-    if (currentTrack) {
+    if (trackId && trackTitle && trackArtist) {
       setLiveLyrics(null);
       setOriginalLyrics(null);
       setIsTranslated(false);
       setIsLoadingLyrics(true);
       void LyricsRepository.getLyrics({
-        title: currentTrack.title,
-        artist: currentTrack.artist,
-        durationMs: currentTrack.durationMs,
-        album: currentTrack.album,
-        videoId: currentTrack.id,
+        title: trackTitle,
+        artist: trackArtist,
+        durationMs: trackDuration,
+        album: trackAlbum,
+        videoId: trackId,
       })
         .then((lyrics) => {
           if (!isMounted) return;
@@ -40,6 +46,9 @@ export function useNowPlayingLyrics(currentTrack: Track | null) {
             }
           }
         })
+        .catch(() => {
+          // Provider failure surfaces as the empty-lyrics state, never an unhandled rejection.
+        })
         .finally(() => {
           if (isMounted) setIsLoadingLyrics(false);
         });
@@ -49,7 +58,7 @@ export function useNowPlayingLyrics(currentTrack: Track | null) {
     return () => {
       isMounted = false;
     };
-  }, [currentTrack]);
+  }, [trackId, trackTitle, trackArtist, trackDuration, trackAlbum]);
 
   const handleChangeProvider = useCallback(async () => {
     if (!currentTrack) return;
@@ -93,15 +102,20 @@ export function useNowPlayingLyrics(currentTrack: Track | null) {
       return;
     }
     setIsTranslating(true);
-    const translated = await LyricsTranslationService.translate(
-      currentTrack.id,
-      originalLyrics.lines,
-      'en'
-    );
-    setIsTranslating(false);
-    if (translated) {
-      setLiveLyrics(translated);
-      setIsTranslated(true);
+    try {
+      const translated = await LyricsTranslationService.translate(
+        currentTrack.id,
+        originalLyrics.lines,
+        'en'
+      );
+      if (translated) {
+        setLiveLyrics(translated);
+        setIsTranslated(true);
+      }
+    } catch {
+      // Keep original lyrics on translation failure.
+    } finally {
+      setIsTranslating(false);
     }
   }, [currentTrack, isTranslated, originalLyrics]);
 

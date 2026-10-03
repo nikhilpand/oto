@@ -1,6 +1,9 @@
 import React from 'react';
 import TestRenderer, { act } from 'react-test-renderer';
 
+import { TrackOptionsSheet } from '../components/TrackOptionsSheet';
+import type { Track } from '@/domain/types';
+
 // Ensure React is marked as used
 void React.version;
 
@@ -46,9 +49,6 @@ jest.mock('expo-image', () => {
     Image: (props: any) => React.createElement('Image', props),
   };
 });
-
-import { TrackOptionsSheet } from '../components/TrackOptionsSheet';
-import type { Track } from '@/domain/types';
 
 const mockTrack: Track = {
   id: 'track_test_123',

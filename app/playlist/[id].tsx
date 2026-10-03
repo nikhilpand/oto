@@ -21,6 +21,8 @@ export default function PlaylistRoute() {
 
   useEffect(() => {
     let isMounted = true;
+    // Reset is intentional: syncing UI state to a new external fetch on route param change.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsLoading(true);
     setErrorMessage(null);
 

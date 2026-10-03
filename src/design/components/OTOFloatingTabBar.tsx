@@ -17,7 +17,7 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
-import { color, radius, space, spring } from '@/design/tokens';
+import { color, radius, space, spring, shadow } from '@/design/tokens';
 import { useLayout } from '@/design/hooks/useLayout';
 import { OTOText } from '@/design/components/OTOText';
 import {
@@ -48,6 +48,32 @@ const TAB_CONFIG: Record<TabKey, { label: string; icon: (focused: boolean) => Re
   library: { label: 'Library', icon: (f) => <LibraryIcon size={22} color={f ? color.accent.signature : color.text.tertiary} focused={f} /> },
   search:  { label: 'Search',  icon: (f) => <SearchIcon  size={22} color={f ? color.accent.signature : color.text.tertiary} focused={f} /> },
 };
+
+interface TabButtonProps {
+  onPress: () => void;
+  accessibilityLabel: string;
+  selected: boolean;
+  children: React.ReactNode;
+}
+
+/** Tab hit area with a UI-thread spring press scale. */
+function TabButton({ onPress, accessibilityLabel, selected, children }: TabButtonProps): React.JSX.Element {
+  const pressScale = useSharedValue(1);
+  const pressStyle = useAnimatedStyle(() => ({ transform: [{ scale: pressScale.value }] }));
+  return (
+    <Pressable
+      accessibilityRole="tab"
+      accessibilityState={{ selected }}
+      accessibilityLabel={accessibilityLabel}
+      onPress={onPress}
+      onPressIn={() => { pressScale.value = withSpring(0.88, spring.spatial.fast); }}
+      onPressOut={() => { pressScale.value = withSpring(1, spring.spatial.fast); }}
+      style={styles.tabItem}
+    >
+      <Animated.View style={[styles.tabInner, pressStyle]}>{children}</Animated.View>
+    </Pressable>
+  );
+}
 
 export function OTOFloatingTabBar({ state, descriptors, navigation }: OTOFloatingTabBarProps): React.JSX.Element {
   const { contentWidth, bottomInset } = useLayout();
@@ -103,13 +129,11 @@ export function OTOFloatingTabBar({ state, descriptors, navigation }: OTOFloatin
           const a11yLabel = options.tabBarAccessibilityLabel ?? `${label} tab, ${isFocused ? 'selected' : 'not selected'}`;
 
           return (
-            <Pressable
+            <TabButton
               key={route.key}
-              accessibilityRole="tab"
-              accessibilityState={{ selected: isFocused }}
+              selected={isFocused}
               accessibilityLabel={a11yLabel}
               onPress={() => handlePress(route, isFocused)}
-              style={styles.tabItem}
             >
               <View style={styles.iconWrap}>{config.icon(isFocused)}</View>
               <OTOText
@@ -120,7 +144,7 @@ export function OTOFloatingTabBar({ state, descriptors, navigation }: OTOFloatin
               >
                 {label}
               </OTOText>
-            </Pressable>
+            </TabButton>
           );
         })}
       </View>
@@ -130,8 +154,8 @@ export function OTOFloatingTabBar({ state, descriptors, navigation }: OTOFloatin
 
 const styles = StyleSheet.create({
   outerContainer: {
-    position: 'absolute', alignSelf: 'center', zIndex: 100, elevation: 10,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.5, shadowRadius: 20,
+    position: 'absolute', alignSelf: 'center', zIndex: 100,
+    ...shadow.sheet,
   },
   capsule: {
     height: 64, backgroundColor: 'rgba(14, 14, 18, 0.96)',
@@ -155,6 +179,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     height: '100%',
   },
+  tabInner: { alignItems: 'center', justifyContent: 'center' },
   iconWrap: { alignItems: 'center', justifyContent: 'center' },
   tabLabel: { fontSize: 10, marginTop: 2, letterSpacing: 0.2 },
 });

@@ -11,7 +11,8 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
-import { color, space, radius, spring } from '@/design/tokens';
+import { Canvas, Fill, LinearGradient, vec } from '@shopify/react-native-skia';
+import { color, space, radius, spring, shadow } from '@/design/tokens';
 import { useReducedMotion } from '@/design/hooks/useReducedMotion';
 import { OTOText } from '@/design/components/OTOText';
 import { OTOArtwork } from '@/design/components/OTOArtwork';
@@ -88,8 +89,16 @@ export function SpotlightFlowCard({
           />
         </View>
 
-        {/* Gradient scrim for text legibility */}
-        <View style={styles.scrim} />
+        {/* Gradient scrim for text legibility (verified dark floor under text) */}
+        <Canvas style={styles.scrim} pointerEvents="none">
+          <Fill>
+            <LinearGradient
+              start={vec(0, CARD_HEIGHT * 0.3)}
+              end={vec(0, CARD_HEIGHT)}
+              colors={['transparent', `${color.bg.base}B3`, `${color.bg.base}F2`]}
+            />
+          </Fill>
+        </Canvas>
 
         {/* Text + CTA overlay */}
         <View style={styles.overlay}>
@@ -137,11 +146,7 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: color.glass.highlight,
     backgroundColor: color.bg.s1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.4,
-    shadowRadius: 16,
-    elevation: 4,
+    ...shadow.sheet,
   },
   topRim: {
     position: 'absolute',
@@ -158,9 +163,6 @@ const styles = StyleSheet.create({
   },
   scrim: {
     ...StyleSheet.absoluteFill,
-    // Bottom-heavy dark scrim for text contrast
-    backgroundColor: 'transparent',
-    // Simulated gradient using nested views (no linear-gradient native dep needed)
     zIndex: 1,
   },
   overlay: {
@@ -171,7 +173,6 @@ const styles = StyleSheet.create({
     padding: space[4],
     paddingBottom: space[5],
     zIndex: 3,
-    backgroundColor: 'rgba(0,0,0,0.52)',
     gap: space[1],
   },
   badge: {

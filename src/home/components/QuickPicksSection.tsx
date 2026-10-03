@@ -9,7 +9,7 @@ import React from 'react';
 import { View, StyleSheet, Platform, Pressable } from 'react-native';
 import Animated, { FadeInLeft, useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
-import { color, space, radius, touchTarget, spring } from '@/design/tokens';
+import { color, space, radius, touchTarget, spring, shadow } from '@/design/tokens';
 import { useReducedMotion } from '@/design/hooks/useReducedMotion';
 import { OTOText } from '@/design/components/OTOText';
 import { OTOArtwork } from '@/design/components/OTOArtwork';
@@ -154,11 +154,7 @@ const styles = StyleSheet.create({
     height: 46,
     borderRadius: radius.xs,
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 2,
+    ...shadow.card,
   },
   metaContainer: {
     flex: 1,
@@ -185,10 +181,6 @@ const styles = StyleSheet.create({
     borderTopColor: color.glass.highlight,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 2,
+    ...shadow.card,
   },
 });

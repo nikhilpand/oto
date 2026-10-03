@@ -1,6 +1,9 @@
 import React from 'react';
 import TestRenderer, { act } from 'react-test-renderer';
 
+import { SettingsScreenContent } from '../screens/SettingsScreenContent';
+import { AppSettings } from '@/store/settings/AppSettings';
+
 // Ensure React is marked as used
 void React.version;
 
@@ -61,9 +64,6 @@ jest.mock('@/audio/cache/StreamCache', () => ({
   clearStreamCache: jest.fn().mockResolvedValue(undefined),
   getCachedTotalBytes: jest.fn(() => 52428800),
 }));
-
-import { SettingsScreenContent } from '../screens/SettingsScreenContent';
-import { AppSettings } from '@/store/settings/AppSettings';
 
 describe('SettingsScreen Worst-Case Tests', () => {
   beforeEach(() => {

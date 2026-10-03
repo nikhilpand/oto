@@ -34,7 +34,7 @@ export function buildMusixmatchUrl(query: MusixmatchQuery & { apiKey: string }):
   return `https://api.musixmatch.com/ws/1.1/matcher.subtitle.get?${params.toString()}`;
 }
 
-export function parseMusixmatchResponse(payload: unknown): Array<{ timeMs: number; durationMs: number; text: string }> | null {
+export function parseMusixmatchResponse(payload: unknown): { timeMs: number; durationMs: number; text: string }[] | null {
   if (!payload || typeof payload !== 'object') return null;
   const anyPayload = payload as {
     message?: {
@@ -310,7 +310,7 @@ function parseMxmSubtitles(bodyStr: string): LyricLine[] {
 
 export function fetchMusixmatchLyrics(
   query: MusixmatchQuery
-): Promise<Array<{ timeMs: number; durationMs: number; text: string }> | null>;
+): Promise<{ timeMs: number; durationMs: number; text: string }[] | null>;
 export function fetchMusixmatchLyrics(
   title: string,
   artist?: string,
@@ -320,7 +320,7 @@ export async function fetchMusixmatchLyrics(
   titleOrQuery: string | MusixmatchQuery,
   artist?: string,
   durationMs?: number
-): Promise<ParsedLyrics | Array<{ timeMs: number; durationMs: number; text: string }> | null> {
+): Promise<ParsedLyrics | { timeMs: number; durationMs: number; text: string }[] | null> {
   if (typeof titleOrQuery === 'object') {
     if (!titleOrQuery.apiKey) {
       return null;
@@ -352,7 +352,7 @@ export async function fetchMusixmatchLyrics(
   const searchData = (await signedFetch(searchUrl)) as {
     message?: {
       body?: {
-        track_list?: Array<{ track: MusixmatchTrackItem }>;
+        track_list?: { track: MusixmatchTrackItem }[];
       };
     };
   } | null;

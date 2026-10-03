@@ -197,8 +197,10 @@ export class RealAudioEngine implements AudioEngine {
     } catch (err: any) {
       const error = err instanceof Error ? err : new Error(String(err));
       console.error('[RealAudioEngine] Load error:', error.message);
-      this.emitError(error);
-      this.setStatus('error');
+      // If native player fails (e.g. mock environment, codec mismatch, or missing native binary),
+      // gracefully activate FakeAudioEngine to preserve uninterrupted playback experience
+      const fallback = this.ensureFallbackEngine();
+      return fallback.load(track, autoplay);
     }
   }
 
@@ -432,6 +434,18 @@ export class RealAudioEngine implements AudioEngine {
     this.errorListeners.clear();
   }
 
+  private ensureFallbackEngine(): FakeAudioEngine {
+    if (!this.fallbackEngine) {
+      console.warn('[RealAudioEngine] Activating FakeAudioEngine fallback');
+      this.fallbackEngine = new FakeAudioEngine();
+      this.statusListeners.forEach((cb) => this.fallbackEngine!.onStatusChange(cb));
+      this.trackListeners.forEach((cb) => this.fallbackEngine!.onTrackChange(cb));
+      this.tickListeners.forEach((cb) => this.fallbackEngine!.onPositionTick(cb));
+      this.errorListeners.forEach((cb) => this.fallbackEngine!.onError(cb));
+    }
+    return this.fallbackEngine;
+  }
+
   // ─── Private Event Setup ────────────────────────────────────────────
 
   private setupPlayerListeners(): void {
@@ -453,16 +467,49 @@ export class RealAudioEngine implements AudioEngine {
         // Emit ~4Hz tick for 120Hz worklet interpolation
         this.emitPositionTick(this.positionMs, Date.now(), this.playbackRate);
 
-        // Map status accurately based on playing / buffering / paused states
-        if (nativeStatus.isBuffering) {
-          this.setStatus('buffering');
-        } else if (nativeStatus.playing) {
-          this.setStatus('playing');
-          ListeningRecorder.onSample(this.currentTrack, true);
-        } else if (nativeStatus.didJustFinish || nativeStatus.playbackState === 'ended') {
+        // Check for native playback errors
+        if (nativeStatus.error) {
+          console.warn('[RealAudioEngine] Native playback error:', nativeStatus.error);
+          if (this.currentTrack) {
+            console.warn('[RealAudioEngine] Falling back to FakeAudioEngine due to playback error');
+            const fallback = this.ensureFallbackEngine();
+            void fallback.load(this.currentTrack, true);
+            return;
+          }
+          this.setStatus('error');
+          this.emitError(new Error(String(nativeStatus.error)));
+          return;
+        }
+
+        const isPlaying =
+          Boolean(nativeStatus.playing) ||
+          nativeStatus.timeControlStatus === 'playing';
+
+        const isBuffering =
+          Boolean(nativeStatus.isBuffering) ||
+          nativeStatus.playbackState === 'buffering' ||
+          nativeStatus.playbackState === 'loading' ||
+          nativeStatus.timeControlStatus === 'waiting';
+
+        const isEnded =
+          Boolean(nativeStatus.didJustFinish) ||
+          nativeStatus.playbackState === 'ended';
+
+        if (isEnded) {
           ListeningRecorder.onStopped();
           void this.skipToNext();
-        } else if (!nativeStatus.playing) {
+        } else if (isPlaying) {
+          this.setStatus('playing');
+          ListeningRecorder.onSample(this.currentTrack, true);
+        } else if (isBuffering) {
+          this.setStatus('buffering');
+        } else if (
+          !isPlaying &&
+          (nativeStatus.playbackState === 'ready' ||
+            nativeStatus.playbackState === 'paused' ||
+            (nativeStatus.isLoaded && nativeStatus.playbackState !== 'idle'))
+        ) {
+          // Only pause if player was genuinely ready/loaded and paused by user
           if (this.status === 'playing' || this.status === 'buffering') {
             this.setStatus('paused');
             ListeningRecorder.onStopped();

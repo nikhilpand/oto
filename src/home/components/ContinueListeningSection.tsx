@@ -180,10 +180,6 @@ const styles = StyleSheet.create({
     borderTopColor: color.glass.highlight,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 2,
+    ...shadow.card,
   },
 });

@@ -15,6 +15,7 @@ export default function TabLayout() {
       tabBar={(props) => <OTOFloatingTabBar {...props} />}
       screenOptions={{
         headerShown: false,
+        animation: 'fade',
         tabBarStyle: styles.tabBar,
         tabBarActiveTintColor: color.text.primary,
         tabBarInactiveTintColor: color.text.tertiary,

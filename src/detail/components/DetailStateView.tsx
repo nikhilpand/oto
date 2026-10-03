@@ -68,7 +68,13 @@ export function DetailStateView({
             <OTOText variant="body" colorRole="secondary" style={styles.errorText}>
               {errorMessage || 'Information could not be loaded.'}
             </OTOText>
-            <Pressable style={styles.goBackBtn} onPress={onBack}>
+            <Pressable
+              style={styles.goBackBtn}
+              onPress={onBack}
+              accessible
+              accessibilityRole="button"
+              accessibilityLabel="Go back to previous screen"
+            >
               <OTOText variant="body" weight="bold" colorRole="primary">
                 Go Back
               </OTOText>

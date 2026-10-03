@@ -1,6 +1,8 @@
 import React from 'react';
 import TestRenderer, { act } from 'react-test-renderer';
 
+import { NowPlayingSecondaryBar } from '../components/NowPlayingSecondaryBar';
+
 // Ensure React is marked as used
 void React.version;
 
@@ -36,8 +38,6 @@ jest.mock('@expo/vector-icons', () => {
     MaterialCommunityIcons: (props: any) => React.createElement('MaterialCommunityIcons', props),
   };
 });
-
-import { NowPlayingSecondaryBar } from '../components/NowPlayingSecondaryBar';
 
 describe('NowPlayingSecondaryBar worst-case tests', () => {
   it('renders Solo and Party segmented pill when showQueue is false', () => {

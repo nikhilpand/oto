@@ -1,6 +1,8 @@
 import React from 'react';
 import TestRenderer, { act } from 'react-test-renderer';
 
+import { AudioOutputSheet } from '../components/AudioOutputSheet';
+
 // Ensure React is marked as used
 void React.version;
 
@@ -39,8 +41,6 @@ jest.mock('@expo/vector-icons', () => {
     MaterialCommunityIcons: (props: any) => React.createElement('MaterialCommunityIcons', props),
   };
 });
-
-import { AudioOutputSheet } from '../components/AudioOutputSheet';
 
 describe('AudioOutputSheet worst-case tests', () => {
   it('renders active device card, volume control, and audio pipeline card matching BitChord', () => {

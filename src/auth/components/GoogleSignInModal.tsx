@@ -99,7 +99,13 @@ export function GoogleSignInModal({ visible, onClose }: GoogleSignInModalProps):
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.backdrop}>
-        <Pressable style={styles.dismissOverlay} onPress={onClose} />
+        <Pressable
+          style={styles.dismissOverlay}
+          onPress={onClose}
+          accessible
+          accessibilityRole="button"
+          accessibilityLabel="Dismiss sign in dialog"
+        />
 
         <View style={styles.sheetContainer}>
           <AuthModalHeader isSignedIn={isSignedIn} onClose={onClose} />

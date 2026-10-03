@@ -49,7 +49,7 @@ export function AuthConnectForm({
           accessibilityLabel="Sign in with Google Account"
         >
           {isLoading
-            ? <ActivityIndicator size="small" color="#FFFFFF" />
+            ? <ActivityIndicator size="small" color={color.text.primary} />
             : <OTOText variant="body" weight="bold" style={styles.googleButtonText}>Sign In with Google</OTOText>}
         </Pressable>
         <OTOText variant="caption" colorRole="tertiary" style={styles.nativeSignInHint}>
@@ -91,9 +91,13 @@ export function AuthConnectForm({
         style={[styles.primaryButton, isLoading && styles.buttonDisabled]}
         onPress={onConnect}
         disabled={isLoading}
+        accessible
+        accessibilityRole="button"
+        accessibilityLabel="Connect YouTube Music Account"
+        accessibilityHint="Validates and connects your session cookie"
       >
         {isLoading
-          ? <ActivityIndicator size="small" color="#000" />
+          ? <ActivityIndicator size="small" color={color.bg.base} />
           : <OTOText variant="body" weight="bold" style={styles.primaryButtonText}>Connect Account</OTOText>}
       </Pressable>
 
@@ -121,14 +125,14 @@ const styles = StyleSheet.create({
   connectSection: { gap: space[3], paddingTop: space[2] },
   nativeSignInWrapper: { gap: space[2], marginBottom: space[2] },
   googleSignInButton: {
-    height: 52, backgroundColor: '#1E1E24',
+    height: 52, backgroundColor: color.bg.s2,
     borderRadius: radius.full, borderWidth: 1.5, borderColor: color.accent.signature,
     alignItems: 'center', justifyContent: 'center',
     shadowColor: color.accent.signature, shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25, shadowRadius: 8, elevation: 4,
   },
   buttonDisabled: { opacity: 0.6 },
-  googleButtonText: { color: '#FFFFFF', fontSize: type.body[0] },
+  googleButtonText: { color: color.text.primary, fontSize: type.body[0] },
   nativeSignInHint: { textAlign: 'center', lineHeight: 18, paddingHorizontal: space[2] },
   dividerRow: { flexDirection: 'row', alignItems: 'center', gap: space[2], marginVertical: space[2] },
   dividerLine: { flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: color.hairline },
@@ -151,7 +155,7 @@ const styles = StyleSheet.create({
     height: 48, backgroundColor: color.accent.signature,
     borderRadius: radius.full, alignItems: 'center', justifyContent: 'center',
   },
-  primaryButtonText: { color: '#000000' },
+  primaryButtonText: { color: color.bg.base },
   guideContainer: {
     gap: 4, padding: space[3], backgroundColor: color.bg.s2,
     borderRadius: radius.md, borderWidth: 1, borderColor: color.hairline, marginTop: space[1],

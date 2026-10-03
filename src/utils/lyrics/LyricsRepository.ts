@@ -97,7 +97,7 @@ export class LyricsRepository {
       prioritizeWordSync = true,
     } = options;
 
-    const promises: Array<Promise<{ provider: LyricsProviderName; lyrics: ParsedLyrics | null }>> = [
+    const promises: Promise<{ provider: LyricsProviderName; lyrics: ParsedLyrics | null }>[] = [
       // 1. BiniLyrics (TTML word-synced)
       fetchBiniLyrics(title, artist, durationMs, album, isrc).then((lyrics) => ({
         provider: 'BiniLyrics' as const,
@@ -133,7 +133,7 @@ export class LyricsRepository {
 
     // Wait for all to finish, then evaluate results in priority order
     const results = await Promise.allSettled(promises);
-    const resolved: Array<{ provider: LyricsProviderName; lyrics: ParsedLyrics }> = [];
+    const resolved: { provider: LyricsProviderName; lyrics: ParsedLyrics }[] = [];
 
     for (const res of results) {
       if (res.status === 'fulfilled' && res.value.lyrics && res.value.lyrics.lines.length > 0) {

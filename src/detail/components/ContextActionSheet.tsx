@@ -114,7 +114,13 @@ export function ContextActionSheet({
       <GestureHandlerRootView style={styles.overlay}>
         {/* Backdrop */}
         <Animated.View style={[styles.backdrop, backdropStyle]}>
-          <Pressable style={styles.backdropPressable} onPress={close} />
+          <Pressable
+            style={styles.backdropPressable}
+            onPress={close}
+            accessible
+            accessibilityRole="button"
+            accessibilityLabel="Close action menu"
+          />
         </Animated.View>
 
         {/* Sheet */}

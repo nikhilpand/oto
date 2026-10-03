@@ -77,7 +77,7 @@ export async function fetchKuGouLyrics(
     if (!searchRes.ok) return null;
     const searchJson = (await searchRes.json()) as {
       data?: {
-        info?: Array<{ hash?: string; duration?: number }>;
+        info?: { hash?: string; duration?: number }[];
       };
     };
 
@@ -114,7 +114,7 @@ export async function fetchKuGouLyrics(
     if (!lyricRes.ok) return null;
 
     const lyricJson = (await lyricRes.json()) as {
-      candidates?: Array<{ id?: string; accesskey?: string }>;
+      candidates?: { id?: string; accesskey?: string }[];
     };
 
     const candidate = lyricJson.candidates?.[0];

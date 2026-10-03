@@ -453,7 +453,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   scrollContent: {
-    paddingVertical: space[8],
+    paddingTop: space[8],
+    paddingBottom: Dimensions.get('window').height * 0.45,
     paddingHorizontal: space[4],
     gap: space[2],
   },

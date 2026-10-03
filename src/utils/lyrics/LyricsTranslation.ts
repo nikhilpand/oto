@@ -67,7 +67,7 @@ export class LyricsTranslationService {
       const data = (await res.json()) as unknown[];
       if (!Array.isArray(data) || !Array.isArray(data[0])) return null;
 
-      const segments = data[0] as Array<[string]>;
+      const segments = data[0] as [string][];
       const translatedBody = segments.map((s) => s[0] || '').join('');
 
       const parts = translatedBody

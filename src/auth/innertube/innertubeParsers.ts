@@ -65,7 +65,7 @@ export function runsText(node: any): string {
  * Picks the highest resolution thumbnail from a thumbnail array.
  */
 export function bestThumbnail(
-  thumbnails?: Array<{ url: string; width?: number; height?: number }>
+  thumbnails?: { url: string; width?: number; height?: number }[]
 ): string | undefined {
   if (!thumbnails || !thumbnails.length) return undefined;
   // Last thumbnail is typically the highest quality

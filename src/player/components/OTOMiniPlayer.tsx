@@ -107,6 +107,15 @@ export function OTOMiniPlayer({
     transform: [{ scale: playScale.value }],
   }));
 
+  // Artwork eases down when paused, matching the full player's pause scale
+  const artScale = useSharedValue(isPlaying ? 1 : 0.92);
+  React.useEffect(() => {
+    artScale.value = withSpring(isPlaying ? 1 : 0.92, spring.spatial.playful);
+  }, [isPlaying, artScale]);
+  const artStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: artScale.value }],
+  }));
+
   // Gestures: horizontal swipe skips track, vertical swipe up expands, tap expands
   const tapGesture = useMemo(() => {
     return Gesture.Tap().onEnd(() => {
@@ -194,7 +203,7 @@ export function OTOMiniPlayer({
               style={styles.expandArea}
             >
               {/* 44x44 Artwork with subtle shadow */}
-              <View style={styles.artworkContainer}>
+              <Animated.View style={[styles.artworkContainer, artStyle]}>
                 <OTOArtwork
                   uri={currentTrack.artworkUrl}
                   thumbhash={currentTrack.thumbhash}
@@ -202,7 +211,7 @@ export function OTOMiniPlayer({
                   borderRadius={radius.sm}
                   alt={`${currentTrack.title} cover art`}
                 />
-              </View>
+              </Animated.View>
 
               {/* Title & Artist */}
               <View style={styles.metadataContainer}>
@@ -323,11 +332,7 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: radius.sm,
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 4,
+    ...shadow.card,
   },
   metadataContainer: {
     flex: 1,
@@ -346,8 +351,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   skipButton: {
-    width: 40,
-    height: 40,
+    width: Platform.select({ ios: touchTarget.ios, default: touchTarget.android }),
+    height: Platform.select({ ios: touchTarget.ios, default: touchTarget.android }),
     alignItems: 'center',
     justifyContent: 'center',
   },
