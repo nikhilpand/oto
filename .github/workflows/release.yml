@@ -17,7 +17,7 @@ on:
         description: 'Release Tag (e.g. v0.1.0)'
         required: false
         type: string
-        default: 'v0.1.0'
+        default: 'v0.1.1'
 
 permissions:
   contents: write
@@ -145,8 +145,8 @@ jobs:
             TAG="${GITHUB_REF#refs/tags/}"
             SHOULD_RELEASE="true"
           else
-            TAG="v0.1.0-main"
-            SHOULD_RELEASE="false"
+            TAG="v0.1.1"
+            SHOULD_RELEASE="true"
           fi
           echo "tag=$TAG" >> $GITHUB_OUTPUT
           echo "should_release=$SHOULD_RELEASE" >> $GITHUB_OUTPUT
